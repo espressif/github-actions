@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-rom jira import JIRA
+from jira import JIRA
 from github import Github
 import pprint
 import json
