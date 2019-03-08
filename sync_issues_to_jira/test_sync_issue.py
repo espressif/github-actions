@@ -26,6 +26,7 @@ import tempfile
 
 MOCK_GITHUB_TOKEN = "iamagithubtoken"
 
+
 def run_sync_issue(event_name, event, jira_issue=None):
     """
     Run the 'sync_issue' main() function with supplied event (as Python dict), event name, and mocked JIRA PAI.
@@ -67,7 +68,7 @@ def run_sync_issue(event_name, event, jira_issue=None):
             issue_type_bug,
             issue_type_task,
             issue_type_new_feature,
-            ]
+        ]
 
         if jira_issue is not None:
             jira_class.return_value.search_issues.return_value = [jira_issue]
@@ -75,7 +76,7 @@ def run_sync_issue(event_name, event, jira_issue=None):
             remote_link.globalId = event["issue"]["html_url"]
             remote_link.raw = {"object": {
                 "title": event["issue"]["title"],
-                "status": { },
+                "status": {},
             }}
             jira_class.return_value.remote_links.return_value = [remote_link]
         else:
@@ -100,7 +101,7 @@ class TestIssuesEvents(unittest.TestCase):
                  "title": "Test issue",
                  "body": "I am a new test issue\nabc\n\n",
                  "user": {"login": "testuser"},
-                 "labels" : [ { "name": "bug" } ],
+                 "labels": [{"name": "bug"}],
                  "state": "open",
                  }
         event = {"action": "opened",
@@ -157,7 +158,7 @@ class TestIssuesEvents(unittest.TestCase):
                  "body": "Edited issue content goes here",
                  "user": {"login": "edituser"},
                  "state": "open",
-                 "labels" : []
+                 "labels": [],
                  }
 
         m_jira = self._test_issue_simple_comment("edited", issue)
@@ -181,7 +182,7 @@ class TestIssuesEvents(unittest.TestCase):
                         "title": "Test issue",
                         "body": "I am a test issue\nabc\n\n",
                         "user": {"login": "otheruser"},
-                        "labels": [{"name" : "Type: New Feature"}],
+                        "labels": [{"name": "Type: New Feature"}],
                         "state": "closed" if action in ["closed", "deleted"] else "open",
                         }
         event = {"action": action,
@@ -212,7 +213,7 @@ class TestIssueCommentEvents(unittest.TestCase):
         self._test_issue_comment("deleted")
 
     def test_issue_comment_edited(self):
-        self._test_issue_comment("edited", extra_event_data={ "changes" : {"body": {"from": "I am the old comment body" } }})
+        self._test_issue_comment("edited", extra_event_data={"changes": {"body": {"from": "I am the old comment body"}}})
 
     def _test_issue_comment(self, action, gh_issue=None, gh_comment=None, extra_event_data={}):
         """

@@ -31,53 +31,38 @@ def main():
         event = json.load(f)
         pprint.pprint(event)
 
-        print('Connecting to JIRA...')
-        jira = JIRA(os.environ['JIRA_URL'],
-                    basic_auth=(os.environ['JIRA_USER'],
-                                os.environ['JIRA_PASS']))
+    print('Connecting to JIRA...')
+    jira = JIRA(os.environ['JIRA_URL'],
+                basic_auth=(os.environ['JIRA_USER'],
+                            os.environ['JIRA_PASS']))
 
-        action = event["action"]
+    event_name = os.environ['GITHUB_EVENT_NAME']
+    action = event["action"]
 
-        if os.environ['GITHUB_EVENT_NAME'] == 'issues':
-            action_handlers = {
-                'opened': handle_issue_opened,
-                'edited': handle_issue_edited,
-                'closed': handle_issue_closed,
-                'deleted': handle_issue_deleted,
-                'reopened': handle_issue_reopened,
-                'labeled': handle_issue_label_change,
-                'unlabeled': handle_issue_label_change,
-            }
-        elif os.environ['GITHUB_EVENT_NAME'] == 'issue_comment':
-            action_handlers = {
-                'created': handle_comment_created,
-                'edited': handle_comment_edited,
-                'deleted': handle_comment_deleted,
-            }
-        if action in action_handlers:
-            action_handlers[action](jira, event)
-        else:
-            print("No handler for issues action '%s'. Skipping." % action)
+    action_handlers = {
+        'issues': {
+            'opened': handle_issue_opened,
+            'edited': handle_issue_edited,
+            'closed': handle_issue_closed,
+            'deleted': handle_issue_deleted,
+            'reopened': handle_issue_reopened,
+            'labeled': handle_issue_label_change,
+            'unlabeled': handle_issue_label_change,
+        },
+        'issue_comment': {
+            'created': handle_comment_created,
+            'edited': handle_comment_edited,
+            'deleted': handle_comment_deleted,
+        },
+    }
 
+    if event_name not in action_handlers:
+        print("No handler for event '%s'. Skipping." % event_name)
+    elif action not in action_handlers[event_name]:
+        print("No handler '%s' action '%s'. Skipping." % (event_name, action))
+    else:
+        action_handlers[event_name][action](jira, event)
 
-def _get_jira_issue_type(jira, gh_issue):
-    """
-    Try to map a GitHub label to a JIRA issue type. Matches will happen when the label
-    matches the issue type (case insensitive) or when the label has the form "Type: <issuetype>"
-    """
-    gh_labels = [l["name"] for l in gh_issue["labels"]]
-
-    issue_types = jira.issue_types()
-
-    for gh_label in gh_labels:
-        for issue_type in issue_types:
-            type_name = issue_type.name.lower()
-            if gh_label.lower() in [ type_name, "type: %s" % (type_name,) ]:
-                # a match!
-                print("Mapping GitHub label '%s' to JIRA issue type '%s'" % (gh_label, issue_type.name))
-                return { "id": issue_type.id }  # JIRA API needs JSON here
-
-    return None
 
 def handle_issue_opened(jira, event):
     _create_jira_issue(jira, event["issue"])
@@ -123,29 +108,6 @@ def handle_issue_reopened(jira, event):
     _update_link_resolved(jira, event["issue"], issue)
 
 
-def _leave_jira_issue_comment(jira, event, verb, should_create,
-                              jira_issue=None):
-    """
-    Leave a simple comment that the GitHub issue corresponding to this event was 'verb' by the GitHub user in question.
-
-    If should_create is set then a JIRA issue will be opened if it doesn't exist.
-
-    If jira_issue is set then this JIRA issue will be updated, otherwise the function will find the corresponding synced issue.
-    """
-    gh_issue = event["issue"]
-    if jira_issue is None:
-        jira_issue = _find_jira_issue(jira, event["issue"], should_create)
-        if jira_issue is None:
-            return
-    jira.add_comment(jira_issue.id, "The [GitHub issue|%s] has been %s by @%s" % (gh_issue["html_url"], verb, gh_issue["user"]["login"]))
-    return jira_issue
-
-
-def _get_jira_comment_body(gh_comment, body=None):
-    if body is None:
-        body = _markdown2wiki(gh_comment["body"])
-    return "[GitHub issue comment|%s] by @%s:\n\n%s" % (gh_comment["html_url"], gh_comment["user"]["login"], body)
-
 def handle_comment_created(jira, event):
     gh_comment = event["comment"]
 
@@ -180,17 +142,21 @@ def handle_comment_deleted(jira, event):
 
 def _update_link_resolved(jira, gh_issue, jira_issue):
     """
-    Update the 'resolved' status of the external link, based on the GitHub issue
+    Update the 'resolved' status of the remote "synced from" link, based on the
+    GitHub issue open/closed status.
 
-    Also updates the title, if it has changed.
+    (A 'resolved' link is shown in strikethrough format in JIRA interface.)
+
+    Also updates the link title, if GitHub issue title has changed.
     """
     resolved = gh_issue["state"] == "closed"
     for link in jira.remote_links(jira_issue):
-        if link.globalId == gh_issue["html_url"]:
+        if hasattr(link, "globalId") and link.globalId == gh_issue["html_url"]:
             new_link = dict(link.raw["object"])  # RemoteLink update() requires all fields as a JSON object, it seems
             new_link["title"] = gh_issue["title"]
             new_link["status"]["resolved"] = resolved
             link.update(new_link)
+
 
 def _markdown2wiki(markdown):
     """
@@ -210,6 +176,9 @@ def _markdown2wiki(markdown):
 
 
 def _get_description(gh_issue):
+    """
+    Return the JIRA description text that corresponds to the provided GitHub issue.
+    """
     return """[GitHub Issue|%(github_url)s] from user @%(github_user)s:
 
     %(github_description)s
@@ -233,6 +202,11 @@ def _get_description(gh_issue):
 
 
 def _get_summary(gh_issue):
+    """
+    Return the JIRA summary corresponding to a given GitHub issue
+
+    Format is: GH #<gh issue number>: <github title without any JIRA slug>
+    """
     result = "GH #%d: %s" % (gh_issue["number"], gh_issue["title"])
 
     # don't mirror any existing JIRA slug-like pattern from GH title to JIRA summary
@@ -243,6 +217,9 @@ def _get_summary(gh_issue):
 
 
 def _create_jira_issue(jira, gh_issue):
+    """
+    Create a new JIRA issue from the provided GitHub issue, then return the JIRA issue.
+    """
     issuetype = _get_jira_issue_type(jira, gh_issue)
     if issuetype is None:
         issuetype = os.environ.get('JIRA_ISSUE_TYPE', 'Task')
@@ -259,6 +236,7 @@ def _create_jira_issue(jira, gh_issue):
     _update_github_with_jira_key(gh_issue, issue)
 
     return issue
+
 
 def _add_remote_link(jira, issue, gh_issue):
     """
@@ -290,7 +268,39 @@ def _update_github_with_jira_key(gh_issue, jira_issue):
     api_gh_issue.edit(title="%s (%s)" % (api_gh_issue.title, jira_issue.key))
 
 
+def _get_jira_issue_type(jira, gh_issue):
+    """
+    Try to map a GitHub label to a JIRA issue type. Matches will happen when the label
+    matches the issue type (case insensitive) or when the label has the form "Type: <issuetype>"
+    """
+    gh_labels = [l["name"] for l in gh_issue["labels"]]
+
+    issue_types = jira.issue_types()
+
+    for gh_label in gh_labels:
+        for issue_type in issue_types:
+            type_name = issue_type.name.lower()
+            if gh_label.lower() in [type_name, "type: %s" % (type_name,)]:
+                # a match!
+                print("Mapping GitHub label '%s' to JIRA issue type '%s'" % (gh_label, issue_type.name))
+                return {"id": issue_type.id}  # JIRA API needs JSON here
+
+    return None  # updating a field to None seems to cause 'no change' for JIRA
+
+
 def _find_jira_issue(jira, gh_issue, make_new=False, second_try=False):
+    """Look for a JIRA issue which has a remote link to the provided GitHub issue.
+
+    Will also find "manually synced" issues that point to each other by name
+    (see README), and create the remote link.
+
+    If make_new is True, a new issue will be created if one is not found.
+
+    second_try is an internal parameter used when make_new is set, to try and
+    avoid races when creating issues (wait a random amount of time and then look
+    again). This is useful because often events on a GitHub issue come in a
+    flurry, and they're not always processed in order.
+    """
     url = gh_issue["html_url"]
     jql_query = 'issue in issuesWithRemoteLinksByGlobalId("%s") order by updated desc' % url
     print("JQL query: %s" % jql_query)
@@ -300,13 +310,12 @@ def _find_jira_issue(jira, gh_issue, make_new=False, second_try=False):
 
         # Check if the github title ends in (JIRA-KEY). If we can find that JIRA issue and the JIRA issue description contains the
         # GitHub URL, assume this item was manually synced over.
-        JIRA_KEY_REGEX = r")"
         m = re.search(r"\(([A-Z]+-\d+)\)\s*$", gh_issue["title"])
         if m is not None:
             try:
                 issue = jira.issue(m.group(1))
                 if gh_issue["html_url"] in issue.fields.description:
-                    print("Looks like JIRA issue %s was manually synced. Adding a remote link for future lookups." % issue.key)
+                    print("Looks like this JIRA issue %s was manually synced. Adding a remote link for future lookups." % issue.key)
                     _add_remote_link(jira, issue, gh_issue)
                     return issue
             except jira.exceptions.JIRAError:
@@ -329,6 +338,34 @@ def _find_jira_issue(jira, gh_issue, make_new=False, second_try=False):
     if len(r) > 1:
         print("WARNING: Remote Link globalID '%s' returns multiple JIRA issues. Using last-updated only." % url)
     return r[0]
+
+
+def _leave_jira_issue_comment(jira, event, verb, should_create,
+                              jira_issue=None):
+    """
+    Leave a simple comment that the GitHub issue corresponding to this event was 'verb' by the GitHub user in question.
+
+    If jira_issue is set then this JIRA issue will be updated, otherwise the function will find the corresponding synced issue.
+
+    If should_create is set then a new JIRA issue will be opened if one can't be found.
+    """
+    gh_issue = event["issue"]
+    if jira_issue is None:
+        jira_issue = _find_jira_issue(jira, event["issue"], should_create)
+        if jira_issue is None:
+            return
+    jira.add_comment(jira_issue.id, "The [GitHub issue|%s] has been %s by @%s" % (gh_issue["html_url"], verb, gh_issue["user"]["login"]))
+    return jira_issue
+
+
+def _get_jira_comment_body(gh_comment, body=None):
+    """
+    Return a JIRA-formatted comment body that corresponds to the provided github comment's text
+    or on an existing comment body message (if set).
+    """
+    if body is None:
+        body = _markdown2wiki(gh_comment["body"])
+    return "[GitHub issue comment|%s] by @%s:\n\n%s" % (gh_comment["html_url"], gh_comment["user"]["login"], body)
 
 
 if __name__ == "__main__":
