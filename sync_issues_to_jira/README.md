@@ -6,7 +6,7 @@ This is a GitHub action that performs simple one way syncing of GitHub issues in
   - A corresponding JIRA issue (in the configured JIRA project) is created.
   - Markdown in the GitHub issue body is converted into JIRA Wiki format (thanks to [markdown2confluence](http://chunpu.github.io/markdown2confluence/browser/))
   - A JIRA custom field "GitHub Reference" is set to the URL of the issue
-  - The GitHub issue title has `(JIRA SLUG)` appended to it.
+  - The GitHub issue title has `(JIRA-KEY)` appended to it.
 * When a GitHub issue is edited, the summary and description of the JIRA issue are updated.
 * When comments are made on the GitHub issue, a comment is created on the JIRA issue.
 * When GitHub comments are edited or deleted a comment is created on the JIRA issue.
@@ -39,7 +39,7 @@ Important: If the URL of the GitHub issue is not found in the JIRA issue descrip
 
 # Issue Types
 
-If a GitHub issue has any labels where the name of the label matches the name of an issue type, or the name of the label matches "Type: <issue type>", then the JIRA issue will be updated to that issue type. Matching is case insensitive.
+If a GitHub issue has any labels where the name of the label matches the name of an issue type, or the name of the label matches `Type: <issue type>`, then the JIRA issue will be updated to that issue type. Matching is case insensitive.
 
 If no labels match issue types, environment variable `JIRA_ISSUE_TYPE` is used as the type for new issues. If `JIRA_ISSUE_TYPE` is not set, the default new issue type is "Task".
 
