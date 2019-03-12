@@ -358,7 +358,12 @@ def _leave_jira_issue_comment(jira, event, verb, should_create,
         jira_issue = _find_jira_issue(jira, event["issue"], should_create)
         if jira_issue is None:
             return None
-    jira.add_comment(jira_issue.id, "The [GitHub issue|%s] has been %s by @%s" % (gh_issue["html_url"], verb, gh_issue["user"]["login"]))
+    try:
+        user = event["sender"]["login"]
+    except KeyError:
+        user = gh_issue["user"]["login"]
+
+    jira.add_comment(jira_issue.id, "The [GitHub issue|%s] has been %s by @%s" % (gh_issue["html_url"], verb, user))
     return jira_issue
 
 
