@@ -16,12 +16,12 @@
 #
 from jira import JIRA
 from github import Github
-import pprint
 import json
 import os
 import random
 import re
 import subprocess
+import sys
 import tempfile
 import time
 
@@ -32,7 +32,7 @@ class _JIRA(JIRA):
 def main():
     with open(os.environ['GITHUB_EVENT_PATH'], 'r') as f:
         event = json.load(f)
-        pprint.pprint(event)
+        json.dump(event, sys.stdout, indent=4)
 
     print('Connecting to JIRA...')
     jira = _JIRA(os.environ['JIRA_URL'],

@@ -99,7 +99,7 @@ class TestIssuesEvents(unittest.TestCase):
                  "repository_url": "https://github.com/fake/fake",
                  "number": 3,
                  "title": "Test issue",
-                 "body": "I am a new test issue\nabc\n\n",
+                 "body": "I am a new test issue\nabc\n测试\n",
                  "user": {"login": "testuser"},
                  "labels": [{"name": "bug"}],
                  "state": "open",
