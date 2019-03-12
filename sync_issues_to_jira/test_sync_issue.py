@@ -74,6 +74,7 @@ def run_sync_issue(event_name, event, jira_issue=None):
             jira_class.return_value.search_issues.return_value = [jira_issue]
             remote_link = create_autospec(jira.resources.RemoteLink)
             remote_link.globalId = event["issue"]["html_url"]
+            remote_link.relationship = "synced from"
             remote_link.raw = {"object": {
                 "title": event["issue"]["title"],
                 "status": {},

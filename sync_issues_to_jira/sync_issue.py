@@ -159,7 +159,7 @@ def _update_link_resolved(jira, gh_issue, jira_issue):
             new_link = dict(link.raw["object"])  # RemoteLink update() requires all fields as a JSON object, it seems
             new_link["title"] = gh_issue["title"]
             new_link["status"]["resolved"] = resolved
-            link.update(new_link)
+            link.update(new_link, globalId=link.globalId, relationship=link.relationship)
 
 
 def _markdown2wiki(markdown):
