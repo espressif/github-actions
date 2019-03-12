@@ -91,7 +91,8 @@ def handle_issue_closed(jira, event):
     # issues often get closed for the wrong reasons - ie the user
     # found a workaround but the root cause still exists.
     issue = _leave_jira_issue_comment(jira, event, "closed", False)
-    _update_link_resolved(jira, event["issue"], issue)
+    if issue is not None:
+        _update_link_resolved(jira, event["issue"], issue)
 
 
 def handle_issue_label_change(jira, event):
@@ -356,7 +357,7 @@ def _leave_jira_issue_comment(jira, event, verb, should_create,
     if jira_issue is None:
         jira_issue = _find_jira_issue(jira, event["issue"], should_create)
         if jira_issue is None:
-            return
+            return None
     jira.add_comment(jira_issue.id, "The [GitHub issue|%s] has been %s by @%s" % (gh_issue["html_url"], verb, gh_issue["user"]["login"]))
     return jira_issue
 
