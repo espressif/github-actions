@@ -25,6 +25,9 @@ import subprocess
 import tempfile
 import time
 
+class _JIRA(JIRA):
+    def applicationlinks(self):
+        return [] # disable this function as we don't need it and it makes add_remote_links() slow
 
 def main():
     with open(os.environ['GITHUB_EVENT_PATH'], 'r') as f:
@@ -32,7 +35,7 @@ def main():
         pprint.pprint(event)
 
     print('Connecting to JIRA...')
-    jira = JIRA(os.environ['JIRA_URL'],
+    jira = _JIRA(os.environ['JIRA_URL'],
                 basic_auth=(os.environ['JIRA_USER'],
                             os.environ['JIRA_PASS']))
 

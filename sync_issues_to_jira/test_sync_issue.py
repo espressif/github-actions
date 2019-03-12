@@ -82,7 +82,7 @@ def run_sync_issue(event_name, event, jira_issue=None):
         else:
             jira_class.return_value.search_issues.return_value = []
 
-        sync_issue.JIRA = jira_class
+        sync_issue._JIRA = jira_class
         sync_issue.Github = github_class
         sync_issue.main()
 
