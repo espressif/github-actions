@@ -117,6 +117,11 @@ class TestIssuesEvents(unittest.TestCase):
         self.assertIn(issue["body"], fields["description"])
         self.assertIn(issue["html_url"], fields["description"])
 
+        # Mentions 'issue', no mention of 'pull request'
+        self.assertIn("issue", fields["description"])
+        self.assertNotIn("pr", fields["summary"].lower())
+        self.assertNotIn("pull request", fields["description"].lower())
+
         # Check that add_remote_link() was called
         rl_args = m_jira.add_remote_link.call_args[1]
         self.assertEqual(m_jira.create_issue.return_value, rl_args["issue"])
@@ -203,6 +208,28 @@ class TestIssuesEvents(unittest.TestCase):
         self.assertIn(action, comment)
 
         return m_jira
+
+    def test_pr_opened(self):
+        pr = {"html_url": "https://github.com/fake/fake/pulls/4",
+              "base": {"repo": {"html_url": "https://github.com/fake/fake"}},
+              "number": 4,
+              "title": "Test issue",
+              "body": "I am a new Pull Request!\nabc\n测试\n",
+              "user": {"login": "testuser"},
+              "labels": [{"name": "bug"}],
+              "state": "open",
+              }
+        event = {"action": "opened",
+                 "pull_request": pr
+                 }
+
+        m_jira = run_sync_issue('pull_request', event)
+
+        # Check that create_issue() mentions a PR not an issue
+        fields = m_jira.create_issue.call_args[0][0]
+        self.assertIn("PR", fields["summary"])
+        self.assertIn("Pull Request", fields["description"])
+        self.assertIn(pr["html_url"], fields["description"])
 
 
 class TestIssueCommentEvents(unittest.TestCase):

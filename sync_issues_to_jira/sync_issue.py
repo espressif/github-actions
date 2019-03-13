@@ -44,6 +44,14 @@ def main():
     event_name = os.environ['GITHUB_EVENT_NAME']
     action = event["action"]
 
+    if event_name == 'pull_request':
+        # Treat pull request events just like issues events for syncing purposes
+        # (we can check the 'pull_request' key in the "issue" later to know if this is an issue or a PR)
+        event_name = 'issues'
+        event["issue"] = event["pull_request"]
+        if "pull_request" not in event["issue"]:
+            event["issue"]["pull_request"] = True  # we don't care about the value
+
     action_handlers = {
         'issues': {
             'opened': handle_issue_opened,
@@ -176,7 +184,7 @@ def _update_link_resolved(jira, gh_issue, jira_issue):
 
     Also updates the link title, if GitHub issue title has changed.
     """
-    resolved = gh_issue["state"] == "closed"
+    resolved = gh_issue["state"] != "open"
     for link in jira.remote_links(jira_issue):
         if hasattr(link, "globalId") and link.globalId == gh_issue["html_url"]:
             new_link = dict(link.raw["object"])  # RemoteLink update() requires all fields as a JSON object, it seems
@@ -206,7 +214,10 @@ def _get_description(gh_issue):
     """
     Return the JIRA description text that corresponds to the provided GitHub issue.
     """
-    return """[GitHub Issue|%(github_url)s] from user @%(github_user)s:
+    is_pr = "pull_request" in gh_issue
+
+    description_format = """
+[GitHub %(type)s|%(github_url)s] from user @%(github_user)s:
 
     %(github_description)s
 
@@ -216,12 +227,20 @@ def _get_description(gh_issue):
 
     * Do not edit this description text, it may be updated automatically.
     * Please interact on GitHub where possible, changes will sync to here.
+    """[1:]  # strip leading newline
+
+    if not is_pr:
+        # additional dot point only shown for issues not PRs
+        description_format += """
     * If closing this issue from a commit, please add
       {code}
       Closes %(github_url)s
       {code}
       in the commit message so the commit is closed on GitHub automatically.
-    """ % {
+"""
+
+    return description_format % {
+        "type": "Pull Request" if is_pr else "Issue",
         "github_url": gh_issue["html_url"],
         "github_user": gh_issue["user"]["login"],
         "github_description": _markdown2wiki(gh_issue["body"]),
@@ -234,7 +253,8 @@ def _get_summary(gh_issue):
 
     Format is: GH #<gh issue number>: <github title without any JIRA slug>
     """
-    result = "GH #%d: %s" % (gh_issue["number"], gh_issue["title"])
+    is_pr = "pull_request" in gh_issue
+    result = "%s #%d: %s" % ("PR" if is_pr else "GH", gh_issue["number"], gh_issue["title"])
 
     # don't mirror any existing JIRA slug-like pattern from GH title to JIRA summary
     # (note we don't look for a particular pattern as the JIRA issue may have moved)
@@ -289,7 +309,16 @@ def _update_github_with_jira_key(gh_issue, jira_issue):
     #
     # note: github also gives us 'repository' JSON which has a 'full_name', but this is simpler
     # for the API structure.
-    repo_name = re.search(r'[^/]+/[^/]+$', gh_issue["repository_url"]).group(0)
+    if "repository_url" in gh_issue:
+        repo_url = gh_issue["repository_url"]
+    elif "repo" in gh_issue:
+        repo_url = gh_issue["repo"]["html_url"]  # pull_request objects store this differently
+    elif "base" in gh_issue:
+        repo_url = gh_issue["base"]["repo"]["html_url"]  # and sometimes like this
+    else:
+        raise RuntimeError("Can't find the base repository URL for this event")
+
+    repo_name = re.search(r'[^/]+/[^/]+$', repo_url).group(0)
     repo = github.get_repo(repo_name)
 
     api_gh_issue = repo.get_issue(gh_issue["number"])
@@ -381,6 +410,8 @@ def _leave_jira_issue_comment(jira, event, verb, should_create,
     If should_create is set then a new JIRA issue will be opened if one can't be found.
     """
     gh_issue = event["issue"]
+    is_pr = "pull_request" in gh_issue
+
     if jira_issue is None:
         jira_issue = _find_jira_issue(jira, event["issue"], should_create)
         if jira_issue is None:
@@ -390,7 +421,8 @@ def _leave_jira_issue_comment(jira, event, verb, should_create,
     except KeyError:
         user = gh_issue["user"]["login"]
 
-    jira.add_comment(jira_issue.id, "The [GitHub issue|%s] has been %s by @%s" % (gh_issue["html_url"], verb, user))
+    jira.add_comment(jira_issue.id, "The [GitHub %s|%s] has been %s by @%s" % ("PR" if is_pr else "issue",
+                                                                               gh_issue["html_url"], verb, user))
     return jira_issue
 
 
@@ -401,7 +433,8 @@ def _get_jira_comment_body(gh_comment, body=None):
     """
     if body is None:
         body = _markdown2wiki(gh_comment["body"])
-    return "[GitHub issue comment|%s] by @%s:\n\n%s" % (gh_comment["html_url"], gh_comment["user"]["login"], body)
+    return "[GitHub issue comment|%s] by @%s:\n\n%s" % (gh_comment["html_url"],
+                                                        gh_comment["user"]["login"], body)
 
 
 def _get_jira_label(gh_label):
