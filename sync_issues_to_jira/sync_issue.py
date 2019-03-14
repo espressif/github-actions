@@ -25,9 +25,11 @@ import sys
 import tempfile
 import time
 
+
 class _JIRA(JIRA):
     def applicationlinks(self):
-        return [] # disable this function as we don't need it and it makes add_remote_links() slow
+        return []  # disable this function as we don't need it and it makes add_remote_links() slow
+
 
 def main():
     with open(os.environ['GITHUB_EVENT_PATH'], 'r') as f:
@@ -36,8 +38,8 @@ def main():
 
     print('Connecting to JIRA...')
     jira = _JIRA(os.environ['JIRA_URL'],
-                basic_auth=(os.environ['JIRA_USER'],
-                            os.environ['JIRA_PASS']))
+                 basic_auth=(os.environ['JIRA_USER'],
+                             os.environ['JIRA_PASS']))
 
     event_name = os.environ['GITHUB_EVENT_NAME']
     action = event["action"]
@@ -49,8 +51,8 @@ def main():
             'closed': handle_issue_closed,
             'deleted': handle_issue_deleted,
             'reopened': handle_issue_reopened,
-            'labeled': handle_issue_label_change,
-            'unlabeled': handle_issue_label_change,
+            'labeled': handle_issue_labeled,
+            'unlabeled': handle_issue_unlabeled,
         },
         'issue_comment': {
             'created': handle_comment_created,
@@ -78,7 +80,6 @@ def handle_issue_edited(jira, event):
     issue.update(fields={
         "description": _get_description(gh_issue),
         "summary": _get_summary(gh_issue),
-        "issuetype": _get_jira_issue_type(jira, gh_issue),
     })
 
     _update_link_resolved(jira, gh_issue, issue)
@@ -95,12 +96,34 @@ def handle_issue_closed(jira, event):
         _update_link_resolved(jira, event["issue"], issue)
 
 
-def handle_issue_label_change(jira, event):
+def handle_issue_labeled(jira, event):
     gh_issue = event["issue"]
-    issue = _find_jira_issue(jira, gh_issue, True)
-    issue.update(fields={
-        "issuetype": _get_jira_issue_type(jira, gh_issue),
-    })
+    jira_issue = _find_jira_issue(jira, gh_issue,
+                                  gh_issue["state"] == "open")
+    if jira_issue is None:
+        return
+
+    labels = list(jira_issue.fields.labels)
+    new_label = _get_jira_label(event["label"])
+    if new_label not in labels:
+        labels.append(new_label)
+        jira_issue.update(fields={"labels": labels})
+
+
+def handle_issue_unlabeled(jira, event):
+    gh_issue = event["issue"]
+    jira_issue = _find_jira_issue(jira, gh_issue,
+                                  gh_issue["state"] == "open")
+    if jira_issue is None:
+        return
+
+    labels = list(jira_issue.fields.labels)
+    removed_label = _get_jira_label(event["label"])
+    try:
+        labels.remove(removed_label)
+        jira_issue.update(fields={"labels": labels})
+    except ValueError:
+        pass  # not in labels list
 
 
 def handle_issue_deleted(jira, event):
@@ -233,6 +256,7 @@ def _create_jira_issue(jira, gh_issue):
         "project": os.environ['JIRA_PROJECT'],
         "description": _get_description(gh_issue),
         "issuetype": issuetype,
+        "labels": [_get_jira_label(l) for l in gh_issue["labels"]],
     }
     issue = jira.create_issue(fields)
 
@@ -276,6 +300,9 @@ def _get_jira_issue_type(jira, gh_issue):
     """
     Try to map a GitHub label to a JIRA issue type. Matches will happen when the label
     matches the issue type (case insensitive) or when the label has the form "Type: <issuetype>"
+
+    NOTE: This is only suitable for setting on new issues. Changing issue type is unsafe.
+    See https://jira.atlassian.com/browse/JRACLOUD-68207
     """
     gh_labels = [l["name"] for l in gh_issue["labels"]]
 
@@ -375,6 +402,11 @@ def _get_jira_comment_body(gh_comment, body=None):
     if body is None:
         body = _markdown2wiki(gh_comment["body"])
     return "[GitHub issue comment|%s] by @%s:\n\n%s" % (gh_comment["html_url"], gh_comment["user"]["login"], body)
+
+
+def _get_jira_label(gh_label):
+    """ Reformat a github API label item as something suitable for JIRA """
+    return gh_label["name"].replace(" ", "-")
 
 
 if __name__ == "__main__":
