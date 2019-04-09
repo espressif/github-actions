@@ -206,7 +206,7 @@ def _markdown2wiki(markdown):
             wiki = subprocess.check_output(['markdown2confluence', mdf.name])
             result = wiki.decode('utf-8', errors='ignore')
             if len(result) > 16384: # limit any single body of text to 16KB (JIRA API limits total text to 32KB)
-                result = result[:16378] + " [...]"
+                result = result[:16376] + "\n\n[...]"  # add newlines to encourage end of any formatting blocks
             return result
         except subprocess.CalledProcessError as e:
             print("Failed to run markdown2confluence: %s. JIRA issue will have raw Markdown contents." % e)
