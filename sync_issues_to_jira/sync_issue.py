@@ -285,6 +285,9 @@ def _create_jira_issue(jira, gh_issue):
 
     _add_remote_link(jira, issue, gh_issue)
     _update_github_with_jira_key(gh_issue, issue)
+    if gh_issue["state"] != "open":
+        # mark the link to GitHub as resolved
+        _update_link_resolved(jira, gh_issue, issue)
 
     return issue
 
