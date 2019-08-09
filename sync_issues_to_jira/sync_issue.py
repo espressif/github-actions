@@ -16,6 +16,7 @@
 #
 from jira import JIRA
 from github import Github
+from github.GithubException import GithubException
 import json
 import os
 import random
@@ -328,7 +329,18 @@ def _update_github_with_jira_key(gh_issue, jira_issue):
     repo = github.get_repo(repo_name)
 
     api_gh_issue = repo.get_issue(gh_issue["number"])
-    api_gh_issue.edit(title="%s (%s)" % (api_gh_issue.title, jira_issue.key))
+
+    retries = 5
+    while True:
+        try:
+            api_gh_issue.edit(title="%s (%s)" % (api_gh_issue.title, jira_issue.key))
+            break
+        except GithubException as e:
+            if retries == 0:
+                raise
+            print("GitHub edit failed: %s (%d retries)" % (e, retries))
+            time.sleep(random.randrange(1, 5))
+            retries -= 1
 
 
 def _get_jira_issue_type(jira, gh_issue):
