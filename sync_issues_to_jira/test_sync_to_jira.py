@@ -17,6 +17,7 @@
 import jira
 import github
 import json
+import sync_to_jira
 import sync_issue
 import os
 import unittest
@@ -48,6 +49,7 @@ def run_sync_issue(event_name, event, jira_issue=None):
         os.environ['JIRA_URL'] = 'https://test.test:88/'
         os.environ['JIRA_USER'] = 'test_user'
         os.environ['JIRA_PASS'] = 'test_pass'
+        os.environ['GITHUB_REPOSITORY'] = 'fake/fake'
 
         github_class = create_autospec(github.Github)
 
@@ -83,9 +85,9 @@ def run_sync_issue(event_name, event, jira_issue=None):
         else:
             jira_class.return_value.search_issues.return_value = []
 
-        sync_issue._JIRA = jira_class
+        sync_to_jira._JIRA = jira_class
         sync_issue.Github = github_class
-        sync_issue.main()
+        sync_to_jira.main()
 
         return jira_class.return_value  # mock JIRA object
 

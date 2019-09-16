@@ -1,0 +1,16 @@
+name: Run JIRA Sync Unit Tests
+
+on: [push]
+
+jobs:
+  test_jira_sync:
+    name: test_jira_sync
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@master
+      - name: Test JIRA sync
+        uses: ./sync_issues_to_jira
+        with:
+          entrypoint: ./sync_issues_to_jira/test_sync_to_jira.py

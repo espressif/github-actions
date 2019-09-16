@@ -27,57 +27,6 @@ import tempfile
 import time
 
 
-class _JIRA(JIRA):
-    def applicationlinks(self):
-        return []  # disable this function as we don't need it and it makes add_remote_links() slow
-
-
-def main():
-    with open(os.environ['GITHUB_EVENT_PATH'], 'r') as f:
-        event = json.load(f)
-        json.dump(event, sys.stdout, indent=4)
-
-    print('Connecting to JIRA...')
-    jira = _JIRA(os.environ['JIRA_URL'],
-                 basic_auth=(os.environ['JIRA_USER'],
-                             os.environ['JIRA_PASS']))
-
-    event_name = os.environ['GITHUB_EVENT_NAME']
-    action = event["action"]
-
-    if event_name == 'pull_request':
-        # Treat pull request events just like issues events for syncing purposes
-        # (we can check the 'pull_request' key in the "issue" later to know if this is an issue or a PR)
-        event_name = 'issues'
-        event["issue"] = event["pull_request"]
-        if "pull_request" not in event["issue"]:
-            event["issue"]["pull_request"] = True  # we don't care about the value
-
-    action_handlers = {
-        'issues': {
-            'opened': handle_issue_opened,
-            'edited': handle_issue_edited,
-            'closed': handle_issue_closed,
-            'deleted': handle_issue_deleted,
-            'reopened': handle_issue_reopened,
-            'labeled': handle_issue_labeled,
-            'unlabeled': handle_issue_unlabeled,
-        },
-        'issue_comment': {
-            'created': handle_comment_created,
-            'edited': handle_comment_edited,
-            'deleted': handle_comment_deleted,
-        },
-    }
-
-    if event_name not in action_handlers:
-        print("No handler for event '%s'. Skipping." % event_name)
-    elif action not in action_handlers[event_name]:
-        print("No handler '%s' action '%s'. Skipping." % (event_name, action))
-    else:
-        action_handlers[event_name][action](jira, event)
-
-
 def handle_issue_opened(jira, event):
     _create_jira_issue(jira, event["issue"])
 
@@ -206,7 +155,7 @@ def _markdown2wiki(markdown):
         try:
             wiki = subprocess.check_output(['markdown2confluence', mdf.name])
             result = wiki.decode('utf-8', errors='ignore')
-            if len(result) > 16384: # limit any single body of text to 16KB (JIRA API limits total text to 32KB)
+            if len(result) > 16384:  # limit any single body of text to 16KB (JIRA API limits total text to 32KB)
                 result = result[:16376] + "\n\n[...]"  # add newlines to encourage end of any formatting blocks
             return result
         except subprocess.CalledProcessError as e:
@@ -255,7 +204,7 @@ def _get_summary(gh_issue):
     """
     Return the JIRA summary corresponding to a given GitHub issue
 
-    Format is: GH #<gh issue number>: <github title without any JIRA slug>
+    Format is: GH/PR #<gh issue number>: <github title without any JIRA slug>
     """
     is_pr = "pull_request" in gh_issue
     result = "%s #%d: %s" % ("PR" if is_pr else "GH", gh_issue["number"], gh_issue["title"])
@@ -312,21 +261,7 @@ def _update_github_with_jira_key(gh_issue, jira_issue):
     """
     github = Github(os.environ["GITHUB_TOKEN"])
 
-    # extract the 'org/repo' canonical name from the repo URL
-    #
-    # note: github also gives us 'repository' JSON which has a 'full_name', but this is simpler
-    # for the API structure.
-    if "repository_url" in gh_issue:
-        repo_url = gh_issue["repository_url"]
-    elif "repo" in gh_issue:
-        repo_url = gh_issue["repo"]["html_url"]  # pull_request objects store this differently
-    elif "base" in gh_issue:
-        repo_url = gh_issue["base"]["repo"]["html_url"]  # and sometimes like this
-    else:
-        raise RuntimeError("Can't find the base repository URL for this event")
-
-    repo_name = re.search(r'[^/]+/[^/]+$', repo_url).group(0)
-    repo = github.get_repo(repo_name)
+    repo = github.get_repo(os.environ['GITHUB_REPOSITORY'])
 
     api_gh_issue = repo.get_issue(gh_issue["number"])
 
@@ -458,7 +393,3 @@ def _get_jira_comment_body(gh_comment, body=None):
 def _get_jira_label(gh_label):
     """ Reformat a github API label item as something suitable for JIRA """
     return gh_label["name"].replace(" ", "-")
-
-
-if __name__ == "__main__":
-    main()
