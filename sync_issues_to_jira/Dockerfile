@@ -16,5 +16,6 @@ RUN apt-get install -y nodejs npm && npm i markdown2confluence -g
 ADD sync_issue.py /sync_issue.py
 ADD sync_pr.py /sync_pr.py
 ADD sync_to_jira.py /sync_to_jira.py
+ADD test_sync_to_jira.py /test_sync_to_jira.py
 
-ENTRYPOINT ["/sync_to_jira.py"]
+ENTRYPOINT ["/usr/bin/python3", "/sync_to_jira.py"]

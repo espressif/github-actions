@@ -28,6 +28,10 @@ class _JIRA(JIRA):
 
 
 def main():
+    if 'GITHUB_REPOSITORY' not in os.environ:
+        print('Not running in GitHub action context, nothing to do')
+        return
+
     if not os.environ['GITHUB_REPOSITORY'].startswith('espressif/'):
         print('Not an Espressif repo, nothing to sync to JIRA')
         return
