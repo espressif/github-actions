@@ -74,7 +74,7 @@ The best way to run the tests is in the docker container, as this is the same en
 ## Build image and run tests in a temporary container:
 
 ```
-docker build . --tag jira-sync && docker run --rm jira-sync --entrypoint=/test_sync_issue.py jira-sync
+docker build . --tag jira-sync && docker run --rm --entrypoint=/test_sync_to_jira.py jira-sync
 ```
 
 ## Rebuild container and run tests multiple times
@@ -91,7 +91,7 @@ docker run -td --name jira-sync --entrypoint=/bin/sh jira-sync
 For each test run, copy the Python files to the running container and run the test program:
 
 ```
-docker cp . jira-sync:/ && docker exec jira-sync /test_sync_issue.py
+docker cp . jira-sync:/ && docker exec jira-sync /test_sync_to_jira.py
 ```
 
 Once finished, kill the container:
