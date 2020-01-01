@@ -35,10 +35,20 @@ def handle_issue_edited(jira, event):
     gh_issue = event["issue"]
     issue = _find_jira_issue(jira, gh_issue, True)
 
-    issue.update(fields={
+    fields = {
         "description": _get_description(gh_issue),
         "summary": _get_summary(gh_issue),
-    })
+        }
+
+    component = os.environ.get('JIRA_COMPONENT', '')
+    if len(component):
+        fields["components"] = [{"name" : component}]
+        # keep any existing components as well
+        for component in issue.fields.components:
+            if component.name != component:
+                fields["components"].append({"name" : component.name})
+
+    issue.update(fields=fields)
 
     _update_link_resolved(jira, gh_issue, issue)
 
@@ -231,6 +241,11 @@ def _create_jira_issue(jira, gh_issue):
         "issuetype": issuetype,
         "labels": [_get_jira_label(l) for l in gh_issue["labels"]],
     }
+
+    component = os.environ.get('JIRA_COMPONENT', '')
+    if len(component):
+        fields["components"] = [{"name" : component}]
+
     issue = jira.create_issue(fields)
 
     _add_remote_link(jira, issue, gh_issue)
