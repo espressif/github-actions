@@ -40,13 +40,7 @@ def handle_issue_edited(jira, event):
         "summary": _get_summary(gh_issue),
         }
 
-    component = os.environ.get('JIRA_COMPONENT', '')
-    if len(component):
-        fields["components"] = [{"name" : component}]
-        # keep any existing components as well
-        for component in issue.fields.components:
-            if component.name != component:
-                fields["components"].append({"name" : component.name})
+    _update_components_field(jira, fields, issue)
 
     issue.update(fields=fields)
 
@@ -241,10 +235,7 @@ def _create_jira_issue(jira, gh_issue):
         "issuetype": issuetype,
         "labels": [_get_jira_label(l) for l in gh_issue["labels"]],
     }
-
-    component = os.environ.get('JIRA_COMPONENT', '')
-    if len(component):
-        fields["components"] = [{"name" : component}]
+    _update_components_field(jira, fields, None)
 
     issue = jira.create_issue(fields)
 
@@ -291,6 +282,44 @@ def _update_github_with_jira_key(gh_issue, jira_issue):
             print("GitHub edit failed: %s (%d retries)" % (e, retries))
             time.sleep(random.randrange(1, 5))
             retries -= 1
+
+
+def _update_components_field(jira, fields, existing_issue=None):
+    """
+    Add a 'components' field to the supplied issue fields dictionary if
+    the JIRA_COMPONENT environment variable is set.
+
+    If existing_issue is not None, any existing components are also copied over.
+
+    If existing_issue is None, JIRA_PROJECT environment variable must be set.
+
+    Check the component exists in the issue's JIRA project before adding it, to prevent
+    fatal errors (especially likely if the JIRA issue has been moved between projects) .
+    """
+    component = os.environ.get('JIRA_COMPONENT', '')
+    if not len(component):
+        print("No JIRA_COMPONENT variable set, not updating components field")
+        return
+
+    if existing_issue:
+        # may be a different project if the issue was moved
+        project = jira.project(existing_issue.fields.project.key)
+    else:
+        project = jira.project(os.environ['JIRA_PROJECT'])
+    project_components = jira.project_components(project)
+
+    if component not in [c.name for c in project_components]:
+        print("JIRA project doesn't contain the configured component, not updating components field")
+        return
+
+    print("Setting components field")
+
+    fields["components"] = [{"name" : component}]
+    # keep any existing components as well
+    if existing_issue:
+        for component in existing_issue.fields.components:
+            if component.name != component:
+                fields["components"].append({"name" : component.name})
 
 
 def _get_jira_issue_type(jira, gh_issue):
