@@ -26,7 +26,7 @@ def sync_remain_prs(jira):
     """
     github = Github(os.environ['GITHUB_TOKEN'])
     repo = github.get_repo(os.environ['GITHUB_REPOSITORY'])
-    prs = repo.get_pulls(state="open", sort="created", base="master", direction="desc")
+    prs = repo.get_pulls(state="open", sort="created", direction="desc")
     for pr in prs:
         if not pr.comments:
             # mock a github issue using current PR
