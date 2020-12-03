@@ -58,6 +58,7 @@ The environment variables should be set in the GitHub Workflow:
 
 * `JIRA_PROJECT` is the slug of the JIRA project to create new issues in.
 * `JIRA_ISSUE_TYPE` (optional) the JIRA issue type for new issues. If unset, "Task" is used.
+* `JIRA_COMPONENT` (optional) the name of a JIRA component to add to every issue which is synced from GitHub. The component must already exist in the JIRA project.
 
 The following secrets should be set in the workflow:
 
