@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 from jira import JIRA
+from github import Github
 import os
 import sys
 import json
@@ -62,6 +63,12 @@ def main():
         event["issue"] = event["pull_request"]
         if "pull_request" not in event["issue"]:
             event["issue"]["pull_request"] = True  # we don't care about the value
+
+    # don't sync if user is our collaborator
+    github = Github(os.environ['GITHUB_TOKEN'])
+    repo = github.get_repo(os.environ['GITHUB_REPOSITORY'])
+    if repo.has_in_collaborators(event["issue"]["user"]["login"]):
+        return
 
     action_handlers = {
         'issues': {
