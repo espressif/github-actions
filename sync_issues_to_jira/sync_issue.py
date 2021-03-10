@@ -67,6 +67,14 @@ def handle_issue_labeled(jira, event):
 
     labels = list(jira_issue.fields.labels)
     new_label = _get_jira_label(event["label"])
+
+    # ignore labels that start with "Status:" and "Resolution:"
+    # these labels are mirrored from Jira issue
+    # and should not be mirrored back as labels
+    ignore_prefix = ("status:", "resolution:")
+    if new_label.lower().startswith(ignore_prefix):
+        return
+
     if new_label not in labels:
         labels.append(new_label)
         jira_issue.update(fields={"labels": labels})
@@ -81,6 +89,14 @@ def handle_issue_unlabeled(jira, event):
 
     labels = list(jira_issue.fields.labels)
     removed_label = _get_jira_label(event["label"])
+
+    # ignore labels that start with "Status:" and "Resolution:"
+    # these labels are mirrored from Jira issue
+    # and will not be present in Jira
+    ignore_prefix = ("status:", "resolution:")
+    if removed_label.lower().startswith(ignore_prefix):
+        return
+
     try:
         labels.remove(removed_label)
         jira_issue.update(fields={"labels": labels})
