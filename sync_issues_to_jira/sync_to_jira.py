@@ -67,7 +67,10 @@ def main():
     # don't sync if user is our collaborator
     github = Github(os.environ['GITHUB_TOKEN'])
     repo = github.get_repo(os.environ['GITHUB_REPOSITORY'])
-    if repo.has_in_collaborators(event["issue"]["user"]["login"]):
+    gh_issue = event["issue"]
+    is_pr = "pull_request" in gh_issue
+    if is_pr and repo.has_in_collaborators(gh_issue["user"]["login"]):
+        print("Skipping issue sync for Pull Request from collaborator")
         return
 
     action_handlers = {
