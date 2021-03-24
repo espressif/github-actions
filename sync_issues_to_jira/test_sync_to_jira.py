@@ -53,6 +53,11 @@ def run_sync_issue(event_name, event, jira_issue=None):
 
         github_class = create_autospec(github.Github)
 
+        gh_repo_class = create_autospec(github.Repository.Repository)
+
+        # tell repo.has_in_collaborators() to return False by default
+        github_class.return_value.get_repo.return_value.has_in_collaborators.return_value = False
+
         jira_class = create_autospec(jira.JIRA)
 
         # fake a issue_types response also
@@ -86,6 +91,7 @@ def run_sync_issue(event_name, event, jira_issue=None):
             jira_class.return_value.search_issues.return_value = []
 
         sync_to_jira._JIRA = jira_class
+        sync_to_jira.Github = github_class
         sync_issue.Github = github_class
         sync_to_jira.main()
 

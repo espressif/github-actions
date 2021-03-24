@@ -1,4 +1,4 @@
-FROM debian:9.5-slim
+FROM debian:10.8-slim
 
 LABEL "com.github.actions.name"="Sync issues to JIRA"
 LABEL "com.github.actions.description"="Sync GitHub issues to JIRA"
@@ -8,10 +8,13 @@ LABEL "com.github.actions.color"="green"
 ENV LANG C.UTF-8
 ENV LC_ALL C.UTF-8
 
-RUN apt-get update && apt-get install -y python3-pip && pip3 install jira PyGithub
+ADD requirements.txt /tmp/requirements.txt
 
-RUN apt-get install -y curl && curl -sL https://deb.nodesource.com/setup_11.x | bash -
-RUN apt-get install -y nodejs npm && npm i markdown2confluence -g
+RUN apt-get update && apt-get install -y python3-pip && pip3 install -r /tmp/requirements.txt
+
+RUN rm /tmp/requirements.txt
+
+RUN apt-get install -y nodejs npm && npm i markdown2confluence@1.3.0 -g
 
 ADD sync_issue.py /sync_issue.py
 ADD sync_pr.py /sync_pr.py
