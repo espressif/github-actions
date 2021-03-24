@@ -3,6 +3,7 @@
 [Github Actions](https://developer.github.com/actions/) developed/used by Espressif to help manage GitHub repos.
 
 * `sync_issues_to_jira` performs one way syncing of GitHub issues into a JIRA project.
+* `release_zips` creates a zip file from a tagged version to attach to a release (recursive clone, unlike the automatic GitHub source archives.)
 
 # Support and Changes
 
