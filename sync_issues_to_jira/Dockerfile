@@ -1,4 +1,4 @@
-FROM debian:10.8-slim
+FROM node:current-buster-slim
 
 LABEL "com.github.actions.name"="Sync issues to JIRA"
 LABEL "com.github.actions.description"="Sync GitHub issues to JIRA"
@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y python3-pip && pip3 install -r /tmp/req
 
 RUN rm /tmp/requirements.txt
 
-RUN apt-get install -y nodejs npm && npm i markdown2confluence@1.3.0 -g
+RUN npm i markdown2confluence@1.3.0 -g
 
 ADD sync_issue.py /sync_issue.py
 ADD sync_pr.py /sync_pr.py
