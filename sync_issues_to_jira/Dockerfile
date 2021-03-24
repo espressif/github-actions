@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y python3-pip && pip3 install -r /tmp/req
 
 RUN rm /tmp/requirements.txt
 
-RUN npm i markdown2confluence@1.3.0 -g
+RUN npm i -g @shogobg/markdown2confluence@0.1.0
 
 ADD sync_issue.py /sync_issue.py
 ADD sync_pr.py /sync_pr.py

@@ -149,16 +149,20 @@ def _update_link_resolved(jira, gh_issue, jira_issue):
 
 def _markdown2wiki(markdown):
     """
-    Convert markdown to JIRA wiki format. Uses https://github.com/chunpu/markdown2confluence
+    Convert markdown to JIRA wiki format. Uses https://github.com/Shogobg/markdown2confluence
     """
-    with tempfile.NamedTemporaryFile('w+') as mdf:  # note: this won't work on Windows
-        mdf.write(markdown)
-        if not markdown.endswith('\n'):
-            mdf.write('\n')
-        mdf.flush()
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        md_path = os.path.join(tmp_dir, 'markdown.md')
+        conf_path = os.path.join(tmp_dir, 'confluence.txt')
+        with open(md_path, 'w') as mdf:
+            mdf.write(markdown)
+            if not markdown.endswith('\n'):
+                mdf.write('\n')
+
         try:
-            wiki = subprocess.check_output(['markdown2confluence', mdf.name])
-            result = wiki.decode('utf-8', errors='ignore')
+            subprocess.check_call(['markdown2confluence', md_path, conf_path])
+            with open(conf_path, 'r') as f:
+                result = f.read()
             if len(result) > 16384:  # limit any single body of text to 16KB (JIRA API limits total text to 32KB)
                 result = result[:16376] + "\n\n[...]"  # add newlines to encourage end of any formatting blocks
             return result
