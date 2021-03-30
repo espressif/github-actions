@@ -86,7 +86,7 @@ def handle_issue_unlabeled(jira, event):
     labels = list(jira_issue.fields.labels)
     removed_label = _get_jira_label(event["label"])
 
-    if _check_issue_label(new_label) is None:
+    if _check_issue_label(removed_label) is None:
         return
 
     try:
