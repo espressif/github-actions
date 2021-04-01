@@ -458,7 +458,7 @@ def _get_jira_comment_body(gh_comment, body=None):
 def _get_jira_label(gh_label):
     """ Reformat a github API label item as something suitable for JIRA """
     # ignore status, resolution and platform: windows labels
-    if _check_issue_label(gh_label) is None:
+    if _check_issue_label(gh_label["name"]) is None:
         return
     return gh_label["name"].replace(" ", "-")
 
