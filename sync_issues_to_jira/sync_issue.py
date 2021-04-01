@@ -67,6 +67,10 @@ def handle_issue_labeled(jira, event):
 
     labels = list(jira_issue.fields.labels)
     new_label = _get_jira_label(event["label"])
+
+    if _check_issue_label(new_label) is None:
+        return
+
     if new_label not in labels:
         labels.append(new_label)
         jira_issue.update(fields={"labels": labels})
@@ -81,6 +85,10 @@ def handle_issue_unlabeled(jira, event):
 
     labels = list(jira_issue.fields.labels)
     removed_label = _get_jira_label(event["label"])
+
+    if _check_issue_label(removed_label) is None:
+        return
+
     try:
         labels.remove(removed_label)
         jira_issue.update(fields={"labels": labels})
@@ -128,6 +136,16 @@ def handle_comment_deleted(jira, event):
     jira_issue = _find_jira_issue(jira, event["issue"], True)
     jira.add_comment(jira_issue.id, "@%s deleted [GitHub issue comment|%s]" % (gh_comment["user"]["login"], gh_comment["html_url"]))
 
+def _check_issue_label(label):
+    """
+    Ignore labels that start with "Status:" and "Resolution:". These labels are
+    mirrored from Jira issue and should not be mirrored back as labels
+    """
+    ignore_prefix = ("status:", "resolution:")
+    if label.lower().startswith(ignore_prefix):
+        return None
+    
+    return label
 
 def _update_link_resolved(jira, gh_issue, jira_issue):
     """
