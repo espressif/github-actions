@@ -141,16 +141,6 @@ def handle_comment_deleted(jira, event):
     jira_issue = _find_jira_issue(jira, event["issue"], True)
     jira.add_comment(jira_issue.id, "@%s deleted [GitHub issue comment|%s]" % (gh_comment["user"]["login"], gh_comment["html_url"]))
 
-def _check_issue_label(label):
-    """
-    Ignore labels that start with "Status:" and "Resolution:". These labels are
-    mirrored from Jira issue and should not be mirrored back as labels
-    """
-    ignore_prefix = ("status:", "resolution:")
-    if label.lower().startswith(ignore_prefix):
-        return None
-    
-    return label
 
 def _update_link_resolved(jira, gh_issue, jira_issue):
     """
@@ -254,6 +244,10 @@ def _create_jira_issue(jira, gh_issue):
     issuetype = _get_jira_issue_type(jira, gh_issue)
     if issuetype is None:
         issuetype = os.environ.get('JIRA_ISSUE_TYPE', 'Task')
+
+    for l in gh_issue["labels"]:
+        if l.lower() == "platform: windows":
+            os.environ['JIRA_COMPONENT'] = 'windows platform'
 
     fields = {
         "summary": _get_summary(gh_issue),
@@ -463,4 +457,21 @@ def _get_jira_comment_body(gh_comment, body=None):
 
 def _get_jira_label(gh_label):
     """ Reformat a github API label item as something suitable for JIRA """
+    # ignore status, resolution and platform: windows labels
+    if _check_issue_label(gh_label) is None:
+        return
     return gh_label["name"].replace(" ", "-")
+
+def _check_issue_label(label):
+    """
+    Ignore labels that start with "Status:" and "Resolution:". These labels are
+    mirrored from Jira issue and should not be mirrored back as labels
+    """
+    ignore_prefix = ("status:", "resolution:")
+    if label.lower().startswith(ignore_prefix):
+        return None
+    
+    if label.lower() == "platform: windows":
+        return None
+
+    return label
