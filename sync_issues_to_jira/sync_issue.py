@@ -74,6 +74,7 @@ def handle_issue_labeled(jira, event):
     if new_label.lower() == "windows: platform":
         os.environ['JIRA_COMPONENT'] = 'windows platform'
         _update_components_field(jira, {}, jira_issue)
+        return
     
     if new_label not in labels:
         labels.append(new_label)
