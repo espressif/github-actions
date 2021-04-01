@@ -246,7 +246,7 @@ def _create_jira_issue(jira, gh_issue):
         issuetype = os.environ.get('JIRA_ISSUE_TYPE', 'Task')
 
     for l in gh_issue["labels"]:
-        if l.lower() == "platform: windows":
+        if l["name"].lower() == "platform: windows":
             os.environ['JIRA_COMPONENT'] = 'windows platform'
 
     fields = {
