@@ -1,0 +1,33 @@
+name: "Upload components"
+description: "Upload components to Espressif component service"
+inputs:
+  api_token:
+    description: "API Token for component service"
+    required: true
+  namespace:
+    description: "Component namespace"
+    required: true
+  directories:
+    description: "Semicolon separated list of directories with components to upload"
+    required: false
+  name:
+    description: "Name of the component. Required, if `directories` are not set.
+      If `directories` contain more than 1 location,
+      the name of the component directory is used instead and `name` is ignored."
+    required: false
+  service_url:
+    description: "Component service API endpoint"
+    required: false
+  skip_pre_release:
+    description: "Flag to skip pre-release versions. Set it to any non-empty string to skip pre-release versions."
+    required: false
+runs:
+  using: "docker"
+  image: "Dockerfile"
+  env:
+    COMPONENTS_DIRECTORIES: ${{ inputs.directories }}
+    COMPONENTS_NAMESPACE: ${{ inputs.namespace }}
+    COMPONENT_NAME: ${{ inputs.name }}
+    IDF_COMPONENT_API_TOKEN: ${{ inputs.api_token }}
+    DEFAULT_COMPONENT_SERVICE_URL: ${{ inputs.service_url }}
+    SKIP_PRE_RELEASE: ${{ inputs.skip_pre_release }}
