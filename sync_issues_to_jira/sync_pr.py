@@ -15,7 +15,6 @@
 # limitations under the License.
 #
 import os
-from jira import JIRA
 from github import Github
 from sync_issue import _find_jira_issue, _create_jira_issue
 
@@ -31,7 +30,7 @@ def sync_remain_prs(jira):
         if not repo.has_in_collaborators(pr.user.login) and not pr.comments:
             # mock a github issue using current PR
             gh_issue = {"pull_request": True,
-                        "labels": [{"name": l.name} for l in pr.labels],
+                        "labels": [{"name": label.name} for label in pr.labels],
                         "number": pr.number,
                         "title": pr.title,
                         "html_url": pr.html_url,

@@ -27,7 +27,7 @@ def main():
         # remote URL doesn't embed the temporary credentials in the zip file or
         # even store the temporary credential token in the filesystem.)
         subprocess.run(["git",  "config", "--global", "credential.https://github.com.username", github_actor], check=True)
-        helper_cmd  = "!f() { test \"$1\" = get && echo \"password=$GITHUB_TOKEN\"; }; f"  # shell command
+        helper_cmd = "!f() { test \"$1\" = get && echo \"password=$GITHUB_TOKEN\"; }; f"  # shell command
         subprocess.run(["git", "config", "--global", "credential.https://github.com.helper", helper_cmd], check=True)
 
     git_url = "https://github.com/{}.git".format(github_repo)
@@ -61,8 +61,8 @@ def main():
     print("Attaching zipfile...")
     release.upload_asset(zipfile)
 
-    print("Release URL is {}".format(release.html_url)
-)
+    print("Release URL is {}".format(release.html_url))
+
 
 if __name__ == "__main__":
     main()

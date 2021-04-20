@@ -17,10 +17,9 @@
 from jira import JIRA
 from github import Github
 import os
-import sys
 import json
-from sync_pr import sync_remain_prs
-from sync_issue import *
+import sync_pr
+import sync_issue
 
 
 class _JIRA(JIRA):
@@ -45,7 +44,7 @@ def main():
 
     # Check if it's a cron job
     if os.environ.get('INPUT_CRON_JOB'):
-        sync_remain_prs(jira)
+        sync_pr.sync_remain_prs(jira)
         return
 
     # The path of the file with the complete webhook event payload. For example, /github/workflow/event.json.
@@ -75,18 +74,18 @@ def main():
 
     action_handlers = {
         'issues': {
-            'opened': handle_issue_opened,
-            'edited': handle_issue_edited,
-            'closed': handle_issue_closed,
-            'deleted': handle_issue_deleted,
-            'reopened': handle_issue_reopened,
-            'labeled': handle_issue_labeled,
-            'unlabeled': handle_issue_unlabeled,
+            'opened': sync_issue.handle_issue_opened,
+            'edited': sync_issue.handle_issue_edited,
+            'closed': sync_issue.handle_issue_closed,
+            'deleted': sync_issue.handle_issue_deleted,
+            'reopened': sync_issue.handle_issue_reopened,
+            'labeled': sync_issue.handle_issue_labeled,
+            'unlabeled': sync_issue.handle_issue_unlabeled,
         },
         'issue_comment': {
-            'created': handle_comment_created,
-            'edited': handle_comment_edited,
-            'deleted': handle_comment_deleted,
+            'created': sync_issue.handle_comment_created,
+            'edited': sync_issue.handle_comment_edited,
+            'deleted': sync_issue.handle_comment_deleted,
         },
     }
 

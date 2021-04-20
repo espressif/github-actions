@@ -53,8 +53,6 @@ def run_sync_issue(event_name, event, jira_issue=None):
 
         github_class = create_autospec(github.Github)
 
-        gh_repo_class = create_autospec(github.Repository.Repository)
-
         # tell repo.has_in_collaborators() to return False by default
         github_class.return_value.get_repo.return_value.has_in_collaborators.return_value = False
 

@@ -14,15 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from jira import JIRA
 from github import Github
 from github.GithubException import GithubException
-import json
 import os
 import random
 import re
 import subprocess
-import sys
 import tempfile
 import time
 
@@ -39,7 +36,7 @@ def handle_issue_edited(jira, event):
     fields = {
         "description": _get_description(gh_issue),
         "summary": _get_summary(gh_issue),
-        }
+    }
 
     _update_components_field(jira, fields, issue)
 
@@ -137,6 +134,7 @@ def handle_comment_deleted(jira, event):
     jira_issue = _find_jira_issue(jira, event["issue"], True)
     jira.add_comment(jira_issue.id, "@%s deleted [GitHub issue comment|%s]" % (gh_comment["user"]["login"], gh_comment["html_url"]))
 
+
 def _check_issue_label(label):
     """
     Ignore labels that start with "Status:" and "Resolution:". These labels are
@@ -145,8 +143,9 @@ def _check_issue_label(label):
     ignore_prefix = ("status:", "resolution:")
     if label.lower().startswith(ignore_prefix):
         return None
-    
+
     return label
+
 
 def _update_link_resolved(jira, gh_issue, jira_issue):
     """
@@ -256,7 +255,7 @@ def _create_jira_issue(jira, gh_issue):
         "project": os.environ['JIRA_PROJECT'],
         "description": _get_description(gh_issue),
         "issuetype": issuetype,
-        "labels": [_get_jira_label(l) for l in gh_issue["labels"]],
+        "labels": [_get_jira_label(label) for label in gh_issue["labels"]],
     }
     _update_components_field(jira, fields, None)
 
@@ -337,12 +336,12 @@ def _update_components_field(jira, fields, existing_issue=None):
 
     print("Setting components field")
 
-    fields["components"] = [{"name" : component}]
+    fields["components"] = [{"name": component}]
     # keep any existing components as well
     if existing_issue:
         for component in existing_issue.fields.components:
             if component.name != component:
-                fields["components"].append({"name" : component.name})
+                fields["components"].append({"name": component.name})
 
 
 def _get_jira_issue_type(jira, gh_issue):
@@ -353,7 +352,7 @@ def _get_jira_issue_type(jira, gh_issue):
     NOTE: This is only suitable for setting on new issues. Changing issue type is unsafe.
     See https://jira.atlassian.com/browse/JRACLOUD-68207
     """
-    gh_labels = [l["name"] for l in gh_issue["labels"]]
+    gh_labels = [label["name"] for label in gh_issue["labels"]]
 
     issue_types = jira.issue_types()
 
