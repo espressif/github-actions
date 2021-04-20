@@ -28,6 +28,7 @@ import time
 
 
 def handle_issue_opened(jira, event):
+    print('Creating new JIRA issue for new GitHub issue')
     _create_jira_issue(jira, event["issue"])
 
 
@@ -367,7 +368,7 @@ def _get_jira_issue_type(jira, gh_issue):
     return None  # updating a field to None seems to cause 'no change' for JIRA
 
 
-def _find_jira_issue(jira, gh_issue, make_new=False, second_try=False):
+def _find_jira_issue(jira, gh_issue, make_new=False, retries=5):
     """Look for a JIRA issue which has a remote link to the provided GitHub issue.
 
     Will also find "manually synced" issues that point to each other by name
@@ -375,10 +376,11 @@ def _find_jira_issue(jira, gh_issue, make_new=False, second_try=False):
 
     If make_new is True, a new issue will be created if one is not found.
 
-    second_try is an internal parameter used when make_new is set, to try and
+    retries is an internal parameter used when make_new is set, to try and
     avoid races when creating issues (wait a random amount of time and then look
     again). This is useful because often events on a GitHub issue come in a
-    flurry, and they're not always processed in order.
+    flurry (for example if someone creates and then edits or labels an issue),
+    # and they're not always processed in order.
     """
     url = gh_issue["html_url"]
     jql_query = 'issue in issuesWithRemoteLinksByGlobalId("%s") order by updated desc' % url
@@ -405,14 +407,21 @@ def _find_jira_issue(jira, gh_issue, make_new=False, second_try=False):
 
         if not make_new:
             return None
-        elif not second_try:
+        elif retries > 0:
             # Wait a random amount of time to see if this JIRA issue is still being created by another
             # GitHub Action. This is a hacky way to try and avoid the case where a GitHub issue is created
             # and edited in a short window of time, and the two GitHub Actions race each other and produce
-            # two JIRA issues. It may still happen sometimes, though.
-            time.sleep(random.randrange(30, 90))
-            return _find_jira_issue(jira, gh_issue, True, True)
+            # two JIRA issues.
+            #
+            # The 'create' event will always create the issue, so it should be processed first unless it's
+            # delayed by more than (retries * min(range)) seconds. This does mean that it can take up to 5
+            # minutes for an old issue (created before the sync was installed), or an issue where the created
+            # event sync failed, to sync in.
+            print('Waiting to see if issue is created by another Action... (retries={})'.format(retries))
+            time.sleep(random.randrange(30, 60))
+            return _find_jira_issue(jira, gh_issue, True, retries - 1)
         else:
+            print('Creating missing issue in JIRA')
             return _create_jira_issue(jira, gh_issue)
     if len(r) > 1:
         print("WARNING: Remote Link globalID '%s' returns multiple JIRA issues. Using last-updated only." % url)
