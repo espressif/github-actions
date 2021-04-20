@@ -51,7 +51,7 @@ def main():
     # The path of the file with the complete webhook event payload. For example, /github/workflow/event.json.
     with open(os.environ['GITHUB_EVENT_PATH'], 'r') as f:
         event = json.load(f)
-        json.dump(event, sys.stdout, indent=4)
+        print(json.dumps(event, indent=4))
 
     event_name = os.environ['GITHUB_EVENT_NAME']  # The name of the webhook event that triggered the workflow.
     action = event["action"]
