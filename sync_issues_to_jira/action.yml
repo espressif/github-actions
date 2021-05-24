@@ -1,0 +1,11 @@
+name: "GitHub to JIRA Issue Sync"
+description: "Performs simple one way syncing of GitHub issues into JIRA."
+inputs:
+  cron_job:
+    description: >
+      Whether the action is run as a cron job.
+      Set true to trigger syncing of new PRs.
+    required: false
+runs:
+  using: "docker"
+  image: "Dockerfile"
