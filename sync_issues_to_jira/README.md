@@ -52,6 +52,80 @@ Currently does not sync the following things:
 * Labels, apart from any which match Issue Types
 * Transitions. Closing, Reopening or Deleting an issue in GitHub only leaves a comment in the JIRA issue. This is at least partially by design because sometimes GitHub issues are closed by their reporters even though an underlying issue still needs fixing in the codebase.
 
+# Usage
+
+- [Sync a new issue to Jira](#sync-a-new-issue-to-jira)
+- [Sync a new issue comment to Jira](#sync-a-new-issue-comment-to-jira)
+- [Sync a new pull request to Jira](#sync-a-new-pull-request-to-jira)
+
+## Sync a new issue to Jira
+
+```yaml
+name: Sync issues to Jira
+# This workflow will be triggered when a new issue is opened
+on: issues
+
+jobs:
+  sync_issues_to_jira:
+    name: Sync issues to Jira
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: Sync GitHub issues to Jira project
+        uses: espressif/github-actions/sync_issues_to_jira@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          JIRA_PASS: ${{ secrets.JIRA_PASS }}
+          JIRA_PROJECT: SOMEPROJECT
+          JIRA_COMPONENT: SOMECOMPONENT
+          JIRA_URL: ${{ secrets.JIRA_URL }}
+          JIRA_USER: ${{ secrets.JIRA_USER }}
+```
+
+## Sync a new issue comment to Jira
+
+Syncing an issue comment works the same way. The only difference is the trigger event.
+
+```yaml
+name: Sync issue comments to JIRA
+# This workflow will be triggered when new issue comment is created (including PR comments)
+on: issue_comment
+...
+```
+
+## Sync a new pull request to Jira
+
+Actions for pull requests run with the privileges of the PR submitter's repo - for security reasons, as they can modify the contents of them.
+If the action is run on the PR event, it can't access the necessary GH secrets containing Jira credentials.
+Therefore PR syncing has to run as a cron task which is loaded from the master branch and run with all privileges.
+
+```yaml
+name: Sync remaining PRs to Jira
+# This workflow will be triggered every hour to sync remaining PRs (i.e. PRs with zero comment) to Jira project
+# Note that PRs can also get synced when a new PR comment is created
+on:
+  schedule:
+    - cron: "0 * * * *"
+
+jobs:
+  sync_prs_to_jira:
+    name: Sync PRs to Jira
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: Sync PRs to Jira project
+        uses: espressif/github-actions/sync_issues_to_jira@master
+        with:
+          cron_job: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          JIRA_PASS: ${{ secrets.JIRA_PASS }}
+          JIRA_PROJECT: SOMEPROJECT
+          JIRA_COMPONENT: SOMECOMPONENT
+          JIRA_URL: ${{ secrets.JIRA_URL }}
+          JIRA_USER: ${{ secrets.JIRA_USER }}
+```
+
 # Variables
 
 The environment variables should be set in the GitHub Workflow:
