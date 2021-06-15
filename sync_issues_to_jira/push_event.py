@@ -33,10 +33,11 @@ def handle_push_event(event):
 
 def update_pull_request(pull_request):
     print("Updating %s" % pull_request)
-    if pull_request.state == 'open':
-        print('Pull request is open, nothing to update.')
-        return
     original_title = pull_request.title
+    # Check if original title already starts with [Merged] keyword. If yes, skip updating pull request.
+    if original_title.startswith('[Merged]'):
+        print('Pull request title suggests it was already merged. Skipping...')
+        return
     # Prepend [Merged] to the pull request title
     new_title = '[Merged] ' + original_title
     pull_request.edit(title=new_title)
