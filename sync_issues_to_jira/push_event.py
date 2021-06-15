@@ -46,12 +46,15 @@ def update_pull_request(pull_request):
 
 
 def parse_commit_message(commit_message):
-    # Regex matches numbers that come after Fix, fix, Fixed, fixed, Fixes, fixes keyword followed by any
+    # First regex matches numbers that come after Fix, fix, Fixed, fixed, Fixes, fixes keyword followed by any
     # combination of spaces and colons, followed by exactly one hashtag. The same applies for Close and Resolve
-    # keywords and their combinations. Note: fixing, closing and resolving don't work.
-    # Only first number is picked. To match multiple numbers you have to add fix or close or resolve or implement keyword
-    # for each of them.
+    # keywords and their combinations. Note: fixing, closing and resolving don't work. Only first number is picked.
+    # To match multiple numbers you have to add fix or close or resolve keyword for each of them.
+    # 
+    # Second regex matches pull request numbers from pull reques url.
+    # 
     # Example:
+    #
     # fixed: #1 #2 #3
     # resolved   ::: ::: :: #4
     # closes: ##5
@@ -60,6 +63,17 @@ def parse_commit_message(commit_message):
     # closeasdf: #8
     # closes #9 <any sting in between> fixed #10
     # fixing #11
-    # Matches: [1, 4, 7, 9, 10]
-    pattern = re.compile('(?:[Ff]ix(?:e[sd]?)(?:\ |:)+|(?:[Cc]los(?:e[sd]?)(?:\ |:)+)|(?:[Rr]esolv(?:e[sd]?)(?:\ |:)+))#(\d+)')
-    return pattern.findall(commit_message)
+    # https://github.com/espressif/esp-idf/pull/12\
+    # https://github.com/espressif/esp-idf/pull/ 13\
+    # https://github.com/espressif/esp-idf/pull/#14\
+    # https://github.com/ESPRESSIF/esp-idf/pull/15
+    #
+    # Above example matches: [1, 4, 9, 10, 12, 15]
+    
+    #
+    reference_pattern = re.compile(r'(?:closes?|closed|fixes|fix|fixed|resolves?|resolved)(?:\s|:)+#(\d+)', re.IGNORECASE)
+    url_pattern = re.compile(r'(?:https://github.com/espressif/esp-idf/pull/)(\d+)', re.IGNORECASE)
+    matches = []
+    matches += reference_pattern.findall(commit_message)
+    matches += url_pattern.findall(commit_message)
+    return matches
