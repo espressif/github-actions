@@ -1,5 +1,21 @@
 #!/bin/bash
 
+function check_if_exists {
+    EXIT_CODE=$?
+    # Exit code 144 is returned when remote entity is already existed.
+    if [ "$EXIT_CODE" -eq "0" ]; then
+        return 0
+    fi
+
+    if [ "$EXIT_CODE" -eq "144" ]; then
+        echo "Already exists! Skipping..."
+        return 0
+    fi
+
+    echo "An error occurred while handling $ITEM"
+    exit 1
+}
+
 IFS=';' read -ra DIRECTORIES <<<"${COMPONENTS_DIRECTORIES:-.}"
 NAMESPACE=${COMPONENTS_NAMESPACE:-espressif}
 if [ -n "$SKIP_PRE_RELEASE" ]; then
@@ -17,6 +33,19 @@ for ITEM in "${DIRECTORIES[@]}"; do
         NAME=$(basename "$(realpath "${FULL_PATH}")")
     fi
 
+    echo "Creating namespace ${NAMESPACE}"
+    python3 -m idf_component_manager create-remote-namespace \
+        --namespace="${NAMESPACE}"
+
+    check_if_exists
+
+    echo "Creating component ${NAME}"
+    python3 -m idf_component_manager create-remote-component \
+        --namespace="${NAMESPACE}" \
+        --name="${NAME}"
+
+    check_if_exists
+
     echo "Processing component \"$NAME\" at $ITEM"
     python3 -m idf_component_manager upload-component \
         --path="${FULL_PATH}" \
@@ -24,10 +53,5 @@ for ITEM in "${DIRECTORIES[@]}"; do
         --name="${NAME}" \
         ${SKIP_PRE_RELEASE_FLAG}
 
-    EXIT_CODE=$?
-    # Exit code 144 is returned when component is already uploaded
-    if [ "$EXIT_CODE" -ne "0" ] && [ "$EXIT_CODE" -ne "144" ]; then
-        echo "An error occurred while uploading the new version of ${NAMESPACE}/${NAME}."
-        exit 1
-    fi
+    check_if_exists
 done
