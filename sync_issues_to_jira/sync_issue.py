@@ -170,6 +170,8 @@ def _markdown2wiki(markdown):
     """
     Convert markdown to JIRA wiki format. Uses https://github.com/Shogobg/markdown2confluence
     """
+    if markdown is None:
+        return "\n"  # Allow empty/blank input
     with tempfile.TemporaryDirectory() as tmp_dir:
         md_path = os.path.join(tmp_dir, 'markdown.md')
         conf_path = os.path.join(tmp_dir, 'confluence.txt')
