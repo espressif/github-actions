@@ -1,0 +1,8 @@
+name: "GitHub PR to Internal Codebase Sync"
+description: "Sync approved Github PRs to the internal codebase"
+branding:
+  icon: "fast-forward"
+  color: "green"
+runs:
+  using: "docker"
+  image: "Dockerfile"
