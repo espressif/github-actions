@@ -10,7 +10,10 @@ ENV LC_ALL C.UTF-8
 
 ADD requirements.txt /tmp/requirements.txt
 
-RUN apt-get update && apt-get install -y python3-pip && pip3 install -r /tmp/requirements.txt
+RUN apt-get update \
+ && apt-get install -y python3-pip \
+ && pip3 install --upgrade pip \
+ && pip3 install -r /tmp/requirements.txt
 
 RUN rm /tmp/requirements.txt
 
