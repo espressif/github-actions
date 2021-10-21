@@ -1,9 +1,4 @@
-FROM node:current-buster-slim
-
-LABEL "com.github.actions.name"="Sync issues to JIRA"
-LABEL "com.github.actions.description"="Sync GitHub issues to JIRA"
-LABEL "com.github.actions.icon"="fast-forward"
-LABEL "com.github.actions.color"="green"
+FROM node:current-bullseye-slim
 
 ENV LANG C.UTF-8
 ENV LC_ALL C.UTF-8
@@ -17,7 +12,7 @@ RUN apt-get update \
 
 RUN rm /tmp/requirements.txt
 
-RUN npm i -g @shogobg/markdown2confluence@0.1.0
+RUN npm i -g @shogobg/markdown2confluence@0.1.6
 
 ADD sync_issue.py /sync_issue.py
 ADD sync_pr.py /sync_pr.py
