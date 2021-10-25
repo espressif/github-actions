@@ -1,5 +1,8 @@
 name: "GitHub to JIRA Issue Sync"
 description: "Performs simple one way syncing of GitHub issues into JIRA."
+branding:
+  icon: "fast-forward"
+  color: "green"
 inputs:
   cron_job:
     description: >
