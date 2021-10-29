@@ -97,7 +97,7 @@ def sync_pr(project_name, pr_num, pr_branch, project_html_url, pr_html_url, reba
     print(git.checkout('FETCH_HEAD', b=pr_branch))
 
     if rebase_flag:
-        #  Set the config parameters: Better be a espressif bot
+        #  Set the config parameters
         repo = Repo(project_name)
         repo.config_writer().set_value('user', 'name', os.environ['GIT_CONFIG_NAME']).release()
         repo.config_writer().set_value('user', 'email', os.environ['GIT_CONFIG_EMAIL']).release()
@@ -127,9 +127,9 @@ def main():
     # The path of the file with the complete webhook event payload. For example, /github/workflow/event.json.
     with open(os.environ['GITHUB_EVENT_PATH'], 'r') as f:
         event = json.load(f)
-        # print(json.dumps(event, indent=4))
 
-    event_name = os.environ['GITHUB_EVENT_NAME']  # The name of the webhook event that triggered the workflow.
+    # The name of the webhook event that triggered the workflow.
+    event_name = os.environ['GITHUB_EVENT_NAME']
     action = event["action"]
     state = event["review"]["state"]
     review_body = event["review"]["body"]
@@ -169,9 +169,9 @@ def main():
     # Gitlab setup and cloning internal codebase
     gl = setup_project(project_fullname)
 
-    if "/rebase" in review_body:
+    if review_body.startswith("/rebase"):
         sync_pr(project_name, pr_num, pr_branch, project_html_url, pr_html_url, rebase_flag=True)
-    elif "/merge" in review_body:
+    elif review_body.startswith("/merge"):
         sync_pr(project_name, pr_num, pr_branch, project_html_url, pr_html_url, rebase_flag=False)
     else:
         print('No action selected!!!')
@@ -185,12 +185,11 @@ def main():
 
     # NOTE: Remote takes some time to register a branch
     time.sleep(15)
-    # check_remote_branch(project_gl, pr_branch)
 
     mr = project_gl.mergerequests.create({'source_branch': pr_branch, 'target_branch': 'master', 'title': pr_title_desc})
 
     print('Updating merge request description...')
-    mr_desc = pr_body + '\n #### (Add more info here)' + '\n## Related'
+    mr_desc = '## Description \n' + pr_body + '\n #### (Add more info here)' + '\n## Related'
     mr_desc +=  '\n* Closes ' + pr_jira_issue
     mr_desc += '\n## Release notes (Mandatory)\n ### To-be-added'
 
