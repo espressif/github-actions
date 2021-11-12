@@ -17,6 +17,15 @@ for ITEM in "${DIRECTORIES[@]}"; do
         NAME=$(basename "$(realpath "${FULL_PATH}")")
     fi
 
+    # Run pre-upload hook if enabled and the hook exists
+    PRE_UPLOAD_HOOK="${FULL_PATH}/pre_upload.sh"
+    if [[ "$ENABLE_HOOKS" == "true" && -f "$PRE_UPLOAD_HOOK" ]]; then
+        set -e
+        echo "Executing pre-upload hook for \"$NAME\" at $ITEM"
+        . "$PRE_UPLOAD_HOOK"
+        set +e
+    fi
+
     echo "Processing component \"$NAME\" at $ITEM"
     python3 -m idf_component_manager upload-component \
         --path="${FULL_PATH}" \

@@ -51,3 +51,4 @@ jobs:
 | directories      | ✔        | Repo root | Semicolon separated list of directories with components              |
 | service_url      | ✔        |           | API Endpoint                                                         |
 | skip_pre_release | ✔        | False     | Flag to skip [pre-release](https://semver.org/#spec-item-9) versions |
+| enable_hooks     | ✔        | False     | Set to `True` to run pre-upload hook before uploading the component  |

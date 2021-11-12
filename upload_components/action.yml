@@ -21,6 +21,10 @@ inputs:
   skip_pre_release:
     description: "Flag to skip pre-release versions. Set it to any non-empty string to skip pre-release versions."
     required: false
+  enable_hooks:
+    description: "Set to `True` to run pre-upload hook before uploading the component."
+    required: false
+
 runs:
   using: "docker"
   image: "Dockerfile"
@@ -31,3 +35,4 @@ runs:
     IDF_COMPONENT_API_TOKEN: ${{ inputs.api_token }}
     DEFAULT_COMPONENT_SERVICE_URL: ${{ inputs.service_url }}
     SKIP_PRE_RELEASE: ${{ inputs.skip_pre_release }}
+    ENABLE_HOOKS: ${{ inputs.enable_hooks }}
