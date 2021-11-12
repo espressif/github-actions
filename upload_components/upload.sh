@@ -2,7 +2,7 @@
 
 IFS=';' read -ra DIRECTORIES <<<"${COMPONENTS_DIRECTORIES:-.}"
 NAMESPACE=${COMPONENTS_NAMESPACE:-espressif}
-if [ -n "$SKIP_PRE_RELEASE" ]; then
+if [[ "$SKIP_PRE_RELEASE" == "true" ]]; then
     SKIP_PRE_RELEASE_FLAG="--skip-pre-release"
 fi
 
