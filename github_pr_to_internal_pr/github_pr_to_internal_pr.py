@@ -64,6 +64,7 @@ def setup_project(project_fullname):
     HDR_LEN = 8
     gl_project_url = GITLAB_URL[: HDR_LEN] + GITLAB_TOKEN + ':' + GITLAB_TOKEN + '@' + GITLAB_URL[HDR_LEN :] + '/' + project_fullname + '.git'
 
+    print('Cloning repository...')
     Git(".").clone(gl_project_url, recursive=True)
     return gl
 
@@ -96,8 +97,9 @@ def check_update_label(pr_label, pr_labels_list):
 
 # Update existing MR
 def update_mr(project_name, pr_num, pr_branch, pr_commit_id, project_html_url, project_gl):
-    branch = project_gl.branches.get(pr_branch)
-    if not branch:
+    try:
+        project_gl.branches.get(pr_branch)
+    except:
         raise SystemError("PR Update: No branch found on internal remote to update!")
 
     GITHUB_REMOTE_NAME = 'github'
@@ -128,8 +130,11 @@ def update_mr(project_name, pr_num, pr_branch, pr_commit_id, project_html_url, p
 
 # Merge PRs with/without Rebase
 def sync_pr(project_name, pr_num, pr_branch, pr_commit_id, project_html_url, project_gl, pr_html_url, rebase_flag):
-    branch = project_gl.branches.get(pr_branch)
-    if branch:
+    try:
+        project_gl.branches.get(pr_branch)
+    except:
+        pass
+    else:
         raise SystemError("PR Merge/Rebase: Branch/MR already exists for PR!")
 
     GITHUB_REMOTE_NAME = 'github'
@@ -226,9 +231,9 @@ def main():
     project_gl = gl.projects.get(project_fullname)
 
     if pr_label == LABEL_REBASE:
-        sync_pr(project_name, pr_num, pr_branch, pr_commit_id, project_html_url, pr_html_url, rebase_flag=True)
+        sync_pr(project_name, pr_num, pr_branch, pr_commit_id, project_html_url, project_gl, pr_html_url, rebase_flag=True)
     elif pr_label == LABEL_MERGE:
-        sync_pr(project_name, pr_num, pr_branch, pr_commit_id, project_html_url, pr_html_url, rebase_flag=False)
+        sync_pr(project_name, pr_num, pr_branch, pr_commit_id, project_html_url, project_gl, pr_html_url, rebase_flag=False)
     elif pr_label == LABEL_UPDATE:
         check_update_label(pr_label, pr_labels_list)
         update_mr(project_name, pr_num, pr_branch, pr_commit_id, project_html_url, project_gl)
