@@ -43,17 +43,7 @@ def pr_check_forbidden_files(pr_files_url):
         raise SystemError("PR modifying forbidden files!!!")
 
 
-def get_github_remote(project_html_url):
-    GITHUB_REMOTE_URL = project_html_url
-
-    HDR_LEN = 8
-    GITHUB_TOKEN = os.environ['GITHUB_TOKEN']
-    gh_remote = GITHUB_REMOTE_URL[: HDR_LEN] + GITHUB_TOKEN + ':' + GITHUB_TOKEN + '@' + GITHUB_REMOTE_URL[HDR_LEN :]
-
-    return gh_remote
-
-
-def setup_project(project_fullname):
+def setup_project(project_html_url, repo_fullname, project_name):
     print('Connecting to GitLab...')
     GITLAB_URL = os.environ['GITLAB_URL']
     GITLAB_TOKEN = os.environ['GITLAB_TOKEN']
@@ -62,10 +52,18 @@ def setup_project(project_fullname):
     gl.auth()
 
     HDR_LEN = 8
-    gl_project_url = GITLAB_URL[: HDR_LEN] + GITLAB_TOKEN + ':' + GITLAB_TOKEN + '@' + GITLAB_URL[HDR_LEN :] + '/' + project_fullname + '.git'
+    gl_project_url = GITLAB_URL[: HDR_LEN] + GITLAB_TOKEN + ':' + GITLAB_TOKEN + '@' + GITLAB_URL[HDR_LEN :] + '/' + repo_fullname + '.git'
 
     print('Cloning repository...')
-    Git(".").clone(gl_project_url, recursive=True)
+    Git(".").clone(project_html_url, branch='master', single_branch=True, recursive=True)
+
+    git = Git(project_name)
+    GITLAB_REMOTE = 'gitlab'
+
+    print('Adding and fetching the internal remote...')
+    git.remote('add', GITLAB_REMOTE, gl_project_url)
+    git.pull(GITLAB_REMOTE, 'master')
+
     return gl
 
 
@@ -84,7 +82,7 @@ def check_remote_branch(project, pr_branch):
     raise SystemError("PR branch creation failed!")
 
 
-def check_update_label(pr_label, pr_labels_list):
+def check_update_label(pr_labels_list):
     LABEL_MERGE = 'PR-Sync-Merge'
     LABEL_REBASE = 'PR-Sync-Rebase'
 
@@ -96,26 +94,18 @@ def check_update_label(pr_label, pr_labels_list):
 
 
 # Update existing MR
-def update_mr(project_name, pr_num, pr_branch, pr_commit_id, project_html_url, project_gl):
+def update_mr(project_name, pr_num, pr_branch, pr_commit_id, project_gl):
     try:
         project_gl.branches.get(pr_branch)
     except:
         raise SystemError("PR Update: No branch found on internal remote to update!")
 
-    GITHUB_REMOTE_NAME = 'github'
-    gh_remote = get_github_remote(project_html_url)
+    GITHUB_REMOTE = 'origin'
+    GITLAB_REMOTE = 'gitlab'
     git = Git(project_name)
 
-    print('Adding the Github remote...')
-    git.remote('add', GITHUB_REMOTE_NAME, gh_remote)
-    git.checkout(pr_branch)
-
-    print('Checking out to master...')
-    git.checkout('master')
-
     print('Updating the PR branch...')
-    git.branch('--delete', pr_branch)
-    git.fetch(GITHUB_REMOTE_NAME, 'pull/' + str(pr_num) + '/head')
+    git.fetch(GITHUB_REMOTE, 'pull/' + str(pr_num) + '/head')
     git.checkout('FETCH_HEAD', b=pr_branch)
 
     print('Checking whether specified commit ID matches with user branch HEAD...')
@@ -125,11 +115,11 @@ def update_mr(project_name, pr_num, pr_branch, pr_commit_id, project_html_url, p
         raise SystemError("PR Commit SHA1 in workflow comment and user branch do not match!")
 
     print('Pushing to remote...')
-    git.push('--force', 'origin', pr_branch)
+    git.push('--force', GITLAB_REMOTE, pr_branch)
 
 
 # Merge PRs with/without Rebase
-def sync_pr(project_name, pr_num, pr_branch, pr_commit_id, project_html_url, project_gl, pr_html_url, rebase_flag):
+def sync_pr(project_name, pr_num, pr_branch, pr_commit_id, project_gl, pr_html_url, rebase_flag):
     try:
         project_gl.branches.get(pr_branch)
     except:
@@ -137,19 +127,12 @@ def sync_pr(project_name, pr_num, pr_branch, pr_commit_id, project_html_url, pro
     else:
         raise SystemError("PR Merge/Rebase: Branch/MR already exists for PR!")
 
-    GITHUB_REMOTE_NAME = 'github'
-    gh_remote = get_github_remote(project_html_url)
-
+    GITHUB_REMOTE = 'origin'
+    GITLAB_REMOTE = 'gitlab'
     git = Git(project_name)
 
-    print('Checking out to master branch...')
-    git.checkout('master')
-
-    print('Adding the Github remote...')
-    git.remote('add', GITHUB_REMOTE_NAME, gh_remote)
-
     print('Fetching the PR branch...')
-    git.fetch(GITHUB_REMOTE_NAME, 'pull/' + str(pr_num) + '/head')
+    git.fetch(GITHUB_REMOTE, 'pull/' + str(pr_num) + '/head')
 
     print('Checking out the PR branch...')
     git.checkout('FETCH_HEAD', b=pr_branch)
@@ -161,7 +144,6 @@ def sync_pr(project_name, pr_num, pr_branch, pr_commit_id, project_html_url, pro
         raise SystemError("PR Commit SHA1 in workflow comment and user branch do not match!")
 
     if rebase_flag:
-        #  Set the config parameters: Better be a espressif bot
         repo = Repo(project_name)
         repo.config_writer().set_value('user', 'name', os.environ['GIT_CONFIG_NAME']).release()
         repo.config_writer().set_value('user', 'email', os.environ['GIT_CONFIG_EMAIL']).release()
@@ -176,7 +158,7 @@ def sync_pr(project_name, pr_num, pr_branch, pr_commit_id, project_html_url, pro
         git.execute(['git','commit', '--amend', '-m', new_cmt_msg])
 
     print('Pushing to remote...')
-    git.push('--set-upstream', 'origin', pr_branch)
+    git.push('--set-upstream', GITLAB_REMOTE, pr_branch)
 
 
 def main():
@@ -191,7 +173,6 @@ def main():
     # The path of the file with the complete webhook event payload. For example, /github/workflow/event.json.
     with open(os.environ['GITHUB_EVENT_PATH'], 'r') as f:
         event = json.load(f)
-        # print(json.dumps(event, indent=4))
 
     LABEL_MERGE = 'PR-Sync-Merge'
     LABEL_REBASE = 'PR-Sync-Rebase'
@@ -206,8 +187,8 @@ def main():
     # Checks whether the approve labeller and workflow initiator are the same
     pr_commit_id = pr_check_approver(pr_creator, pr_comments_url, pr_approve_labeller)
 
-    project_fullname = event['repository']['full_name']
-    project_org, project_name = project_fullname.split('/')
+    repo_fullname = event['repository']['full_name']
+    project_name = repo_fullname.split('/')[1]
     project_html_url = event['repository']['clone_url']
 
     pr_num = event['pull_request']['number']
@@ -222,21 +203,21 @@ def main():
     # Getting the PR title and body
     pr_title = event['pull_request']['title']
     idx = pr_title.find(os.environ['JIRA_PROJECT'])  # Finding the JIRA issue tag
-    pr_title_desc = pr_title[0 : idx - 2]  # For space character
+    pr_title_desc = pr_title[0 : idx - 2] + ' (GitHub PR)'
     pr_jira_issue = pr_title[idx : -1]
     pr_body = event['pull_request']['body']
 
     # Gitlab setup and cloning internal codebase
-    gl = setup_project(project_fullname)
-    project_gl = gl.projects.get(project_fullname)
+    gl = setup_project(project_html_url, repo_fullname, project_name)
+    project_gl = gl.projects.get(repo_fullname)
 
     if pr_label == LABEL_REBASE:
-        sync_pr(project_name, pr_num, pr_branch, pr_commit_id, project_html_url, project_gl, pr_html_url, rebase_flag=True)
+        sync_pr(project_name, pr_num, pr_branch, pr_commit_id, project_gl, pr_html_url, rebase_flag=True)
     elif pr_label == LABEL_MERGE:
-        sync_pr(project_name, pr_num, pr_branch, pr_commit_id, project_html_url, project_gl, pr_html_url, rebase_flag=False)
+        sync_pr(project_name, pr_num, pr_branch, pr_commit_id, project_gl, pr_html_url, rebase_flag=False)
     elif pr_label == LABEL_UPDATE:
-        check_update_label(pr_label, pr_labels_list)
-        update_mr(project_name, pr_num, pr_branch, pr_commit_id, project_html_url, project_gl)
+        check_update_label(pr_labels_list)
+        update_mr(project_name, pr_num, pr_branch, pr_commit_id, project_gl)
         print('Done with the workflow!')
         return
     else:
@@ -253,7 +234,8 @@ def main():
 
     print('Updating merge request description...')
     mr_desc = '## Description \n' + pr_body + '\n ##### (Add more info here)' + '\n## Related'
-    mr_desc +=  '\n* Closes ' + pr_jira_issue
+    mr_desc += '\n* Closes ' + pr_jira_issue
+    mr_desc += '\n* Merges ' + pr_html_url
     mr_desc += '\n## Release notes (Mandatory)\n ### To-be-added'
 
     mr.description = mr_desc
