@@ -24,9 +24,9 @@ def pr_check_approver(pr_creator, pr_comments_url, pr_approve_labeller):
     for comment in reversed(r_data):
         comment_body = comment['body']
         if comment_body.startswith('sha=') and comment['user']['login'] == pr_approve_labeller != pr_creator:
-                return comment_body[4 : ]
+                return comment_body[4:]
 
-    raise SystemError("PR Comment Error: Ensure that Command comment exists and PR commenter and labeller match!")
+    raise RuntimeError('PR Comment Error: Ensure that Command comment exists and PR commenter and labeller match!')
 
 
 def pr_check_forbidden_files(pr_files_url):
@@ -40,7 +40,7 @@ def pr_check_forbidden_files(pr_files_url):
     pr_files = [file_info['filename'] for file_info in r_data
                 if (file_info['filename']).find('.gitlab') != -1 or (file_info['filename']).find('.github') != -1]
     if pr_files:
-        raise SystemError("PR modifying forbidden files!!!")
+        raise RuntimeError('PR modifying forbidden files!!!')
 
 
 def setup_project(project_html_url, repo_fullname, project_name):
@@ -52,10 +52,10 @@ def setup_project(project_html_url, repo_fullname, project_name):
     gl.auth()
 
     HDR_LEN = 8
-    gl_project_url = GITLAB_URL[: HDR_LEN] + GITLAB_TOKEN + ':' + GITLAB_TOKEN + '@' + GITLAB_URL[HDR_LEN :] + '/' + repo_fullname + '.git'
+    gl_project_url = GITLAB_URL[:HDR_LEN] + GITLAB_TOKEN + ':' + GITLAB_TOKEN + '@' + GITLAB_URL[HDR_LEN:] + '/' + repo_fullname + '.git'
 
     print('Cloning repository...')
-    Git(".").clone(project_html_url, branch='master', single_branch=True, recursive=True)
+    Git('.').clone(project_html_url, branch='master', single_branch=True, recursive=True)
 
     git = Git(project_name)
     GITLAB_REMOTE = 'gitlab'
@@ -76,21 +76,20 @@ def check_remote_branch(project, pr_branch):
             time.sleep(1)
             pass
 
-        if ret != None:
+        if ret is not None:
             return
 
-    raise SystemError("PR branch creation failed!")
+    raise RuntimeError('PR branch creation failed!')
 
 
 def check_update_label(pr_labels_list):
     LABEL_MERGE = 'PR-Sync-Merge'
     LABEL_REBASE = 'PR-Sync-Rebase'
 
-    label_validity = [label['name'] for label in pr_labels_list
-            if label['name'] == LABEL_MERGE or label['name'] == LABEL_REBASE]
+    label_validity = [label['name'] for label in pr_labels_list if label['name'] == LABEL_MERGE or label['name'] == LABEL_REBASE]
 
     if not label_validity:
-        raise SystemError('PR-Sync-Update Label: Illegal use!')
+        raise RuntimeError('PR-Sync-Update Label: Illegal use!')
 
 
 # Update existing MR
@@ -98,7 +97,7 @@ def update_mr(project_name, pr_num, pr_branch, pr_commit_id, project_gl):
     try:
         project_gl.branches.get(pr_branch)
     except:
-        raise SystemError("PR Update: No branch found on internal remote to update!")
+        raise RuntimeError('PR Update: No branch found on internal remote to update!')
 
     GITHUB_REMOTE = 'origin'
     GITLAB_REMOTE = 'gitlab'
@@ -112,7 +111,7 @@ def update_mr(project_name, pr_num, pr_branch, pr_commit_id, project_gl):
     expected_commit_id = git.rev_parse('--short', 'HEAD')
 
     if not pr_commit_id.startswith(expected_commit_id):
-        raise SystemError("PR Commit SHA1 in workflow comment and user branch do not match!")
+        raise RuntimeError('PR Commit SHA1 in workflow comment and user branch do not match!')
 
     print('Pushing to remote...')
     git.push('--force', GITLAB_REMOTE, pr_branch)
@@ -125,7 +124,7 @@ def sync_pr(project_name, pr_num, pr_branch, pr_commit_id, project_gl, pr_html_u
     except:
         pass
     else:
-        raise SystemError("PR Merge/Rebase: Branch/MR already exists for PR!")
+        raise RuntimeError('PR Merge/Rebase: Branch/MR already exists for PR!')
 
     GITHUB_REMOTE = 'origin'
     GITLAB_REMOTE = 'gitlab'
@@ -141,7 +140,7 @@ def sync_pr(project_name, pr_num, pr_branch, pr_commit_id, project_gl, pr_html_u
     expected_commit_id = git.rev_parse('--short', 'HEAD')
 
     if not pr_commit_id.startswith(expected_commit_id):
-        raise SystemError("PR Commit SHA1 in workflow comment and user branch do not match!")
+        raise RuntimeError('PR Commit SHA1 in workflow comment and user branch do not match!')
 
     if rebase_flag:
         repo = Repo(project_name)
@@ -203,8 +202,8 @@ def main():
     # Getting the PR title and body
     pr_title = event['pull_request']['title']
     idx = pr_title.find(os.environ['JIRA_PROJECT'])  # Finding the JIRA issue tag
-    pr_title_desc = pr_title[0 : idx - 2] + ' (GitHub PR)'
-    pr_jira_issue = pr_title[idx : -1]
+    pr_title_desc = pr_title[0:idx - 2] + ' (GitHub PR)'
+    pr_jira_issue = pr_title[idx:-1]
     pr_body = event['pull_request']['body']
 
     # Gitlab setup and cloning internal codebase
@@ -221,7 +220,7 @@ def main():
         print('Done with the workflow!')
         return
     else:
-        raise SystemError("Illegal program flow!")
+        raise RuntimeError('Illegal program flow!')
 
     # Deleting local repo
     shutil.rmtree(project_name)
@@ -241,7 +240,7 @@ def main():
     mr.description = mr_desc
     mr.save()
 
-    print('Done with the merge request!')
+    print('Done with the workflow!')
 
 
 if __name__ == '__main__':
