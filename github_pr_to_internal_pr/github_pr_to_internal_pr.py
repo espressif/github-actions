@@ -204,7 +204,7 @@ def main():
     idx = pr_title.find(os.environ['JIRA_PROJECT'])  # Finding the JIRA issue tag
     pr_title_desc = pr_title[0:idx - 2] + ' (GitHub PR)'
     pr_jira_issue = pr_title[idx:-1]
-    pr_body = event['pull_request']['body']
+    pr_body = str(event['pull_request']['body'])
 
     # Gitlab setup and cloning internal codebase
     gl = setup_project(project_html_url, repo_fullname, project_name)
