@@ -15,6 +15,9 @@ inputs:
       If `directories` contain more than 1 location,
       the name of the component directory is used instead and `name` is ignored."
     required: false
+  version:
+    description: "Version of the component, if not specified in the manifest. Can be a semantic version or `git` for getting version from git tag."
+    required: false
   service_url:
     description: "Component service API endpoint"
     required: false
@@ -28,6 +31,7 @@ runs:
     COMPONENTS_DIRECTORIES: ${{ inputs.directories }}
     COMPONENTS_NAMESPACE: ${{ inputs.namespace }}
     COMPONENT_NAME: ${{ inputs.name }}
+    COMPONENT_VERSION: ${{ inputs.version }}
     IDF_COMPONENT_API_TOKEN: ${{ inputs.api_token }}
     DEFAULT_COMPONENT_SERVICE_URL: ${{ inputs.service_url }}
     SKIP_PRE_RELEASE: ${{ inputs.skip_pre_release }}
