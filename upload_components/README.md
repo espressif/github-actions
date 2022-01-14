@@ -1,6 +1,6 @@
-# GitHub Action to upload ESP-IDF components to the component service
+# GitHub Action to upload ESP-IDF components to the component registry
 
-This action uploads [ESP-IDF](https://github.com/espressif/esp-idf) components from a GitHub repository to [Espressif Component Service](https://components.espressif.com).
+This action uploads [ESP-IDF](https://github.com/espressif/esp-idf) components from a GitHub repository to [Espressif Component Registry](https://components.espressif.com).
 
 ## Usage
 
@@ -10,14 +10,45 @@ For successful upload, a component should be created in advance, for example usi
 
 ### Handling versions
 
-If the version in the manifest file is not on the service yet this action will upload it. Every version of the component can be uploaded to the service only once.
+If the version in the manifest file is not in the registry yet this action will upload it. Every version of the component can be uploaded to the registry only once.
 
 It's recommended to change the version in the manifest only when it's ready to be published.
 An alternative supported workflow is to set parameter `skip_pre_release` to any non-empty string and use [pre-release](https://semver.org/#spec-item-9) versions (like `1.0.0-dev`) during development and then change the version to a stable (like `1.0.0`) for release.
 
-If the component with the same version is already on the service the action will ignore it silently.
+If version of the component is not specified in the manifest file, you can use the `version` parameter. It can be set either to a valid [semantic version](https://semver.org/) or to `git`, for getting a version value from a git tag. Tags formatted like `v1.2.3` or `1.2.3` are supported.
 
-### Example workflow
+If the component with the same version is already in the registry the action will skip uploading silently.
+
+### Example workflows
+
+#### Uploading one component with version from git tag
+
+To upload components only on tagged commits `version` parameter can be set to `git`. Action will be skipped on untagged commits.
+
+```yaml
+name: Push component to https://components.espressif.com
+on:
+  push:
+    branches:
+      - main
+jobs:
+  upload_components:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+        with:
+          submodules: "recursive"
+
+      - name: Upload component to the component registry
+        uses: espressif/github-actions/upload_components@master
+        with:
+          name: "my_component"
+          version: "git"
+          namespace: "espressif"
+          api_token: ${{ secrets.IDF_COMPONENT_API_TOKEN }}
+```
+
+#### Uploading multiple components from one repository
 
 ```yaml
 name: Push components to https://components.espressif.com
@@ -33,7 +64,7 @@ jobs:
         with:
           submodules: "recursive"
 
-      - name: Upload components to the component service
+      - name: Upload components to the component registry
         uses: espressif/github-actions/upload_components@master
         with:
           directories: "components/my_component;components/another_component"
@@ -43,11 +74,12 @@ jobs:
 
 ## Parameters
 
-| Input            | Optional | Default   | Description                                                          |
-| ---------------- | -------- | --------- | -------------------------------------------------------------------- |
-| api_token        | ❌       |           | API Token for component service                                      |
-| namespace        | ❌       |           | Component namespace                                                  |
-| name             | ✔ / ❌   |           | Name of the component, required if only 1 directory is set           |
-| directories      | ✔        | Repo root | Semicolon separated list of directories with components              |
-| service_url      | ✔        |           | API Endpoint                                                         |
-| skip_pre_release | ✔        | False     | Flag to skip [pre-release](https://semver.org/#spec-item-9) versions |
+| Input            | Optional | Default   | Description                                                                                                                                  |
+| ---------------- | -------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| api_token        | ❌       |           | API Token for the component registry                                                                                                         |
+| namespace        | ❌       |           | Component namespace                                                                                                                          |
+| name             | ✔ / ❌   |           | Name is required for uploading a component from the root of the repository                                                                   |
+| version          | ✔        |           | Version of the component, if not specified in the manifest. Can be a [semver](https://semver.org/) or `git` for getting version from git tag |
+| directories      | ✔        | Repo root | Semicolon separated list of directories with components.                                                                                     |
+| skip_pre_release | ✔        | False     | Flag to skip [pre-release](https://semver.org/#spec-item-9) versions                                                                         |
+| service_url      | ✔        |           | API Endpoint, default https://api.components.espressif.com/                                                                                  |
