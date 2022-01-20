@@ -2,8 +2,9 @@
 
 IFS=';' read -ra DIRECTORIES <<<"${COMPONENTS_DIRECTORIES:-.}"
 NAMESPACE=${COMPONENTS_NAMESPACE:-espressif}
+UPLOAD_ARGUMENTS=("--allow-existing" "--namespace=${NAMESPACE}" )
 if [ -n "$SKIP_PRE_RELEASE" ]; then
-    SKIP_PRE_RELEASE_FLAG="--skip-pre-release"
+    UPLOAD_ARGUMENTS+=("--skip-pre-release")
 fi
 
 if [ -n "$COMPONENT_VERSION" ]; then
@@ -14,7 +15,7 @@ if [ -n "$COMPONENT_VERSION" ]; then
             exit 0
         fi
     fi
-    COMPONENT_VERSION_OPTION="--version=${COMPONENT_VERSION}"
+    UPLOAD_ARGUMENTS+=("--version=${COMPONENT_VERSION//v/}")
 fi
 
 NUMBER_OF_DIRECTORIES="${#DIRECTORIES[@]}"
@@ -34,13 +35,7 @@ for ITEM in "${DIRECTORIES[@]}"; do
     fi
 
     echo "Processing component \"$NAME\" at $ITEM"
-    python3 -m idf_component_manager upload-component \
-        --allow-existing \
-        --path="${FULL_PATH}" \
-        --namespace="${NAMESPACE}" \
-        --name="${NAME}" \
-        ${COMPONENT_VERSION_OPTION:-} \
-        ${SKIP_PRE_RELEASE_FLAG:-}
+    python3 -m idf_component_manager upload-component "${UPLOAD_ARGUMENTS[@]}" --path="${FULL_PATH}" --name="${NAME}"
 
     EXIT_CODE=$?
     if [ "$EXIT_CODE" -ne "0" ]; then
