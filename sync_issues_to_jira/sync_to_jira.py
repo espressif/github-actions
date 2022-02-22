@@ -21,7 +21,7 @@ import sys
 import json
 from sync_pr import sync_remain_prs
 from sync_issue import *
-from push_event import handle_push_event
+from repository_dispatch import handle_repository_dispatch
 
 
 class _JIRA(JIRA):
@@ -53,11 +53,6 @@ def main():
     with open(os.environ['GITHUB_EVENT_PATH'], 'r') as f:
         event = json.load(f)
         print(json.dumps(event, indent=4))
-    
-    # Check if it's a push event
-    if os.environ['GITHUB_EVENT_NAME'] == 'push':
-        handle_push_event(event)
-        return
 
     event_name = os.environ['GITHUB_EVENT_NAME']  # The name of the webhook event that triggered the workflow.
     action = event["action"]
@@ -94,6 +89,7 @@ def main():
             'edited': handle_comment_edited,
             'deleted': handle_comment_deleted,
         },
+        'repository_dispatch': handle_repository_dispatch
     }
 
     if event_name not in action_handlers:
