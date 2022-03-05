@@ -15,5 +15,3 @@ This script automates the process of creating branches and PRs on the internal c
 - [ ] Behaviour when PR contains multiple commits ([ref](https://github.com/espressif/github-actions/pull/17#discussion_r703454250))
 
 - [ ] Handling of conflicts while using the rebase approach
-
-- [ ] Find a better approach for `sleep(time)` as remote takes time to register a branch ([ref](https://github.com/espressif/github-actions/pull/17#discussion_r703455914))
