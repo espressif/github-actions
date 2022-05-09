@@ -6,8 +6,6 @@ This action uploads [ESP-IDF](https://github.com/espressif/esp-idf) components f
 
 The action requires `api_token` and `namespace` parameters to be set. If the repository contains the only component stored in the root of the repository, then the `name` parameter is also required. If the repository contains more than 1 component in subdirectories, it's necessary to set the `directories` parameter to the semicolon-separated list of directories with components. In this case, the base name of the directory will be used as a component name.
 
-For successful upload, a component should be created in advance, for example using `idf.py create-remote-component` command.
-
 ### Handling versions
 
 If the version in the manifest file is not in the registry yet this action will upload it. Every version of the component can be uploaded to the registry only once.
