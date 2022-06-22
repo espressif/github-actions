@@ -1,4 +1,5 @@
-# GitHub Action to upload ESP-IDF components to the component registry
+# **DEPRECATED** Use [espressif/upload-components-ci-action](https://github.com/espressif/upload-components-ci-action) instead
+## GitHub Action to upload ESP-IDF components to the component registry
 
 This action uploads [ESP-IDF](https://github.com/espressif/esp-idf) components from a GitHub repository to [Espressif Component Registry](https://components.espressif.com).
 
