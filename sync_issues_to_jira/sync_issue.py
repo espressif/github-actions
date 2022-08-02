@@ -39,7 +39,7 @@ def handle_issue_edited(jira, event):
     fields = {
         "description": _get_description(gh_issue),
         "summary": _get_summary(gh_issue),
-        }
+    }
 
     _update_components_field(jira, fields, issue)
 
@@ -137,6 +137,7 @@ def handle_comment_deleted(jira, event):
     jira_issue = _find_jira_issue(jira, event["issue"], True)
     jira.add_comment(jira_issue.id, "@%s deleted [GitHub issue comment|%s]" % (gh_comment["user"]["login"], gh_comment["html_url"]))
 
+
 def _check_issue_label(label):
     """
     Ignore labels that start with "Status:" and "Resolution:". These labels are
@@ -145,8 +146,9 @@ def _check_issue_label(label):
     ignore_prefix = ("status:", "resolution:")
     if label.lower().startswith(ignore_prefix):
         return None
-    
+
     return label
+
 
 def _update_link_resolved(jira, gh_issue, jira_issue):
     """
@@ -339,12 +341,12 @@ def _update_components_field(jira, fields, existing_issue=None):
 
     print("Setting components field")
 
-    fields["components"] = [{"name" : component}]
+    fields["components"] = [{"name": component}]
     # keep any existing components as well
     if existing_issue:
         for component in existing_issue.fields.components:
             if component.name != component:
-                fields["components"].append({"name" : component.name})
+                fields["components"].append({"name": component.name})
 
 
 def _get_jira_issue_type(jira, gh_issue):
@@ -360,6 +362,10 @@ def _get_jira_issue_type(jira, gh_issue):
     issue_types = jira.issue_types()
 
     for gh_label in gh_labels:
+        # Type: Feature Request label should match New Feature issue type in Jira
+        if gh_label == 'Type: Feature Request':
+            print('GitHub label is \'Type: Feature Request\'. Mapping to New Feature Jira issue type')
+            return {"id": 10101}  # JIRA API needs JSON here. 10101 is id for New Feature issue type
         for issue_type in issue_types:
             type_name = issue_type.name.lower()
             if gh_label.lower() in [type_name, "type: %s" % (type_name,)]:
