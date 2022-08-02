@@ -26,6 +26,9 @@ import sys
 import tempfile
 import time
 
+# 10101 is ID for New Feature issue type in Jira.
+JIRA_NEW_FEATURE_TYPE_ID = 10101
+
 
 def handle_issue_opened(jira, event):
     print('Creating new JIRA issue for new GitHub issue')
@@ -365,7 +368,7 @@ def _get_jira_issue_type(jira, gh_issue):
         # Type: Feature Request label should match New Feature issue type in Jira
         if gh_label == 'Type: Feature Request':
             print('GitHub label is \'Type: Feature Request\'. Mapping to New Feature Jira issue type')
-            return {"id": 10101}  # JIRA API needs JSON here. 10101 is id for New Feature issue type
+            return {"id": JIRA_NEW_FEATURE_TYPE_ID}  # JIRA API needs JSON here
         for issue_type in issue_types:
             type_name = issue_type.name.lower()
             if gh_label.lower() in [type_name, "type: %s" % (type_name,)]:
