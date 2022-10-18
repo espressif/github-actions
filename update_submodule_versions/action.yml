@@ -1,0 +1,21 @@
+name: "Update submodules"
+description: "Make PRs to update submodules to new release tags"
+inputs:
+  repo-token:
+    description: "Github API token (for opening PRs)"
+    required: true
+  git-author-name:
+    description: "Commit author name"
+    required: true
+  git-author-email:
+    description: "Commit author email"
+    required: true
+runs:
+  using: "docker"
+  image: "Dockerfile"
+  env:
+    GITHUB_TOKEN: ${{ inputs.repo-token }}
+    GIT_AUTHOR_NAME: ${{ inputs.git-author-name }}
+    GIT_AUTHOR_EMAIL: ${{ inputs.git-author-email }}
+    GIT_COMMITTER_NAME: ${{ inputs.git-author-name }}
+    GIT_COMMITTER_EMAIL: ${{ inputs.git-author-email }}
