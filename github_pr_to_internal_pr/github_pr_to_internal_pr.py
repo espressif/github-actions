@@ -211,7 +211,7 @@ def main():
     mr_desc = '## Description \n' + pr_body + '\n ##### (Add more info here)' + '\n## Related'
     mr_desc += '\n* Closes ' + pr_jira_issue
     mr_desc += '\n* Merges ' + pr_html_url
-    mr_desc += '\n## Release notes (Mandatory)\n ### To-be-added'
+    mr_desc += '\n## Release notes (Mandatory)\n* [component/development area] <Please update release notes, do NOT remove GitHub PR pointer> (' + pr_html_url + ')'
 
     mr.description = mr_desc
     mr.save()
