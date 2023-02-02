@@ -28,6 +28,8 @@ import time
 
 # 10101 is ID for New Feature issue type in Jira.
 JIRA_NEW_FEATURE_TYPE_ID = 10101
+# 10004 is ID for Bug issue type in Jira.
+JIRA_BUG_TYPE_ID = 10004
 
 
 def handle_issue_opened(jira, event):
@@ -369,6 +371,11 @@ def _get_jira_issue_type(jira, gh_issue):
         if gh_label == 'Type: Feature Request':
             print('GitHub label is \'Type: Feature Request\'. Mapping to New Feature Jira issue type')
             return {"id": JIRA_NEW_FEATURE_TYPE_ID}  # JIRA API needs JSON here
+        # Some projects use Label with bug icon represented by ":bug:" in label name.
+        # This if mathes those to Bug Jira issue type
+        if gh_label == 'Type: Bug :bug:':
+            print('GitHub label is \'Type: Bug :bug:\'. Mapping to Bug Jira issue type')
+            return {"id": JIRA_BUG_TYPE_ID}  # JIRA API needs JSON here
         for issue_type in issue_types:
             type_name = issue_type.name.lower()
             if gh_label.lower() in [type_name, "type: %s" % (type_name,)]:
