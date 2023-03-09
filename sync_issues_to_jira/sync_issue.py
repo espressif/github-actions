@@ -30,6 +30,10 @@ import time
 JIRA_NEW_FEATURE_TYPE_ID = 10101
 # 10004 is ID for Bug issue type in Jira.
 JIRA_BUG_TYPE_ID = 10004
+# Initialize GitHub instance
+GITHUB = Github(os.environ["GITHUB_TOKEN"])
+# Initialize GitHub repository
+REPO = GITHUB.get_repo(os.environ['GITHUB_REPOSITORY'])
 
 
 def handle_issue_opened(jira, event):
@@ -66,8 +70,7 @@ def handle_issue_closed(jira, event):
 
 def handle_issue_labeled(jira, event):
     gh_issue = event["issue"]
-    jira_issue = _find_jira_issue(jira, gh_issue,
-                                  gh_issue["state"] == "open")
+    jira_issue = _find_jira_issue(jira, gh_issue, gh_issue["state"] == "open")
     if jira_issue is None:
         return
 
@@ -84,8 +87,7 @@ def handle_issue_labeled(jira, event):
 
 def handle_issue_unlabeled(jira, event):
     gh_issue = event["issue"]
-    jira_issue = _find_jira_issue(jira, gh_issue,
-                                  gh_issue["state"] == "open")
+    jira_issue = _find_jira_issue(jira, gh_issue, gh_issue["state"] == "open")
     if jira_issue is None:
         return
 
@@ -140,7 +142,25 @@ def handle_comment_edited(jira, event):
 def handle_comment_deleted(jira, event):
     gh_comment = event["comment"]
     jira_issue = _find_jira_issue(jira, event["issue"], True)
-    jira.add_comment(jira_issue.id, "@%s deleted [GitHub issue comment|%s]" % (gh_comment["user"]["login"], gh_comment["html_url"]))
+    jira.add_comment(
+        jira_issue.id, "@%s deleted [GitHub issue comment|%s]" % (gh_comment["user"]["login"], gh_comment["html_url"])
+    )
+
+
+# Works both for issues and pull requests
+def sync_issues_manually(jira, event):
+    # Get issue numbers that were entered manually when triggering workflow
+    issue_numbers = event['inputs']['issue-numbers']
+    issues = re.split('\W+', issue_numbers)
+    # Process every issue
+    for issue_number in issues:
+        if not issue_number.isnumeric():
+            print(f'Wrong issue number entered: {issue_number} Skipping...')
+            continue
+        gh_issue = REPO.get_issue(number=int(issue_number))
+        event['issue'] = gh_issue.raw_data
+        print(f'Mirroring issue: #{issue_number} to Jira')
+        handle_issue_opened(jira, event)
 
 
 def _check_issue_label(label):
@@ -216,7 +236,8 @@ def _get_description(gh_issue):
 
     * Do not edit this description text, it may be updated automatically.
     * Please interact on GitHub where possible, changes will sync to here.
-    """[1:]  # strip leading newline
+    """
+    description_format = description_format.lstrip("\n")
 
     if not is_pr:
         # additional dot point only shown for issues not PRs
@@ -285,23 +306,23 @@ def _add_remote_link(jira, issue, gh_issue):
     Add the JIRA "remote link" field that points to the issue
     """
     gh_url = gh_issue["html_url"]
-    jira.add_remote_link(issue=issue,
-                         destination={"url": gh_url,
-                                      "title": gh_issue["title"],
-                                      },
-                         globalId=gh_url,  # globalId is always the GitHub URL
-                         relationship="synced from")
+    jira.add_remote_link(
+        issue=issue,
+        destination={
+            "url": gh_url,
+            "title": gh_issue["title"],
+        },
+        globalId=gh_url,  # globalId is always the GitHub URL
+        relationship="synced from",
+    )
 
 
 def _update_github_with_jira_key(gh_issue, jira_issue):
-    """ Append the new JIRA issue key to the GitHub issue
-        (updates made by github actions don't trigger new actions)
+    """Append the new JIRA issue key to the GitHub issue
+    (updates made by github actions don't trigger new actions)
     """
-    github = Github(os.environ["GITHUB_TOKEN"])
 
-    repo = github.get_repo(os.environ['GITHUB_REPOSITORY'])
-
-    api_gh_issue = repo.get_issue(gh_issue["number"])
+    api_gh_issue = REPO.get_issue(gh_issue["number"])
 
     retries = 5
     while True:
@@ -414,7 +435,10 @@ def _find_jira_issue(jira, gh_issue, make_new=False, retries=5):
             try:
                 issue = jira.issue(m.group(1))
                 if gh_issue["html_url"] in issue.fields.description:
-                    print("Looks like this JIRA issue %s was manually synced. Adding a remote link for future lookups." % issue.key)
+                    print(
+                        "Looks like this JIRA issue %s was manually synced. Adding a remote link for future lookups."
+                        % issue.key
+                    )
                     _add_remote_link(jira, issue, gh_issue)
                     return issue
             except jira.exceptions.JIRAError:
@@ -446,8 +470,7 @@ def _find_jira_issue(jira, gh_issue, make_new=False, retries=5):
     return r[0]
 
 
-def _leave_jira_issue_comment(jira, event, verb, should_create,
-                              jira_issue=None):
+def _leave_jira_issue_comment(jira, event, verb, should_create, jira_issue=None):
     """
     Leave a simple comment that the GitHub issue corresponding to this event was 'verb' by the GitHub user in question.
 
@@ -467,8 +490,10 @@ def _leave_jira_issue_comment(jira, event, verb, should_create,
     except KeyError:
         user = gh_issue["user"]["login"]
 
-    jira.add_comment(jira_issue.id, "The [GitHub %s|%s] has been %s by @%s" % ("PR" if is_pr else "issue",
-                                                                               gh_issue["html_url"], verb, user))
+    jira.add_comment(
+        jira_issue.id,
+        "The [GitHub %s|%s] has been %s by @%s" % ("PR" if is_pr else "issue", gh_issue["html_url"], verb, user),
+    )
     return jira_issue
 
 
@@ -479,10 +504,9 @@ def _get_jira_comment_body(gh_comment, body=None):
     """
     if body is None:
         body = _markdown2wiki(gh_comment["body"])
-    return "[GitHub issue comment|%s] by @%s:\n\n%s" % (gh_comment["html_url"],
-                                                        gh_comment["user"]["login"], body)
+    return "[GitHub issue comment|%s] by @%s:\n\n%s" % (gh_comment["html_url"], gh_comment["user"]["login"], body)
 
 
 def _get_jira_label(gh_label):
-    """ Reformat a github API label item as something suitable for JIRA """
+    """Reformat a github API label item as something suitable for JIRA"""
     return gh_label["name"].replace(" ", "-")

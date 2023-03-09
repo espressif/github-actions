@@ -39,9 +39,7 @@ def main():
 
     # Connect to Jira server
     print('Connecting to Jira Server...')
-    jira = _JIRA(os.environ['JIRA_URL'],
-                 basic_auth=(os.environ['JIRA_USER'],
-                             os.environ['JIRA_PASS']))
+    jira = _JIRA(os.environ['JIRA_URL'], basic_auth=(os.environ['JIRA_USER'], os.environ['JIRA_PASS']))
 
     # Check if it's a cron job
     if os.environ.get('INPUT_CRON_JOB'):
@@ -53,7 +51,30 @@ def main():
         event = json.load(f)
         print(json.dumps(event, indent=4))
 
-    event_name = os.environ['GITHUB_EVENT_NAME']  # The name of the webhook event that triggered the workflow.
+    event_name = os.environ['GITHUB_EVENT_NAME']
+
+    # Check if event is workflow_dispatch and action is mirror issues. If so, run manual mirroring and skip rest of the script. Works both for issues and pull requests.
+    if event_name == 'workflow_dispatch':
+        inputs = event.get('inputs')
+
+        if not inputs:
+            print('Triggered workflow_dispatch event without correct inputs. Exiting...')
+            return
+
+        input_action = inputs.get('action')
+        issue_numbers = inputs.get('issue-numbers')
+        if input_action != 'mirror-issues':
+            print('This action needs input "mirror-issues". Exiting...')
+            return
+        if not issue_numbers:
+            print('This action needs inputs "issue-numbers". Exiting...')
+            return
+
+        print(f'Starting manual sync of issues: {issue_numbers}')
+        sync_issues_manually(jira, event)
+        return
+
+    # The name of the webhook event that triggered the workflow.
     action = event["action"]
 
     if event_name == 'pull_request':
