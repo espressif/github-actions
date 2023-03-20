@@ -2,16 +2,16 @@
 
 This is a GitHub action that performs simple one way syncing of GitHub issues into JIRA.
 
-* When a new GitHub issue is opened
+- When a new GitHub issue is opened
   - A corresponding JIRA issue (in the configured JIRA project) is created.
   - Markdown in the GitHub issue body is converted into JIRA Wiki format (thanks to [markdown2confluence](http://chunpu.github.io/markdown2confluence/browser/))
   - A JIRA custom field "GitHub Reference" is set to the URL of the issue
   - The GitHub issue title has `(JIRA-KEY)` appended to it.
-* When a GitHub issue is edited, the summary and description of the JIRA issue are updated.
-* When comments are made on the GitHub issue, a comment is created on the JIRA issue.
-* When GitHub comments are edited or deleted a comment is created on the JIRA issue.
-* When the GitHub issue is closed or deleted a comment is created on the JIRA issue.
-* When labels are added or removed from the GitHub issue, the same label is added or removed from the JIRA issue.
+- When a GitHub issue is edited, the summary and description of the JIRA issue are updated.
+- When comments are made on the GitHub issue, a comment is created on the JIRA issue.
+- When GitHub comments are edited or deleted a comment is created on the JIRA issue.
+- When the GitHub issue is closed or deleted a comment is created on the JIRA issue.
+- When labels are added or removed from the GitHub issue, the same label is added or removed from the JIRA issue.
 
 # 'Synced From' Link
 
@@ -49,8 +49,8 @@ Changing labels on a GitHub issue does not change the issue type, because [JIRA 
 
 Currently does not sync the following things:
 
-* Labels, apart from any which match Issue Types
-* Transitions. Closing, Reopening or Deleting an issue in GitHub only leaves a comment in the JIRA issue. This is at least partially by design because sometimes GitHub issues are closed by their reporters even though an underlying issue still needs fixing in the codebase.
+- Labels, apart from any which match Issue Types
+- Transitions. Closing, Reopening or Deleting an issue in GitHub only leaves a comment in the JIRA issue. This is at least partially by design because sometimes GitHub issues are closed by their reporters even though an underlying issue still needs fixing in the codebase.
 
 # Usage
 
@@ -90,7 +90,6 @@ Syncing an issue comment works the same way. The only difference is the trigger 
 name: Sync issue comments to JIRA
 # This workflow will be triggered when new issue comment is created (including PR comments)
 on: issue_comment
-...
 ```
 
 ## Sync a new pull request to Jira
@@ -105,7 +104,7 @@ name: Sync remaining PRs to Jira
 # Note that PRs can also get synced when a new PR comment is created
 on:
   schedule:
-    - cron: "0 * * * *"
+    - cron: '0 * * * *'
 
 jobs:
   sync_prs_to_jira:
@@ -126,19 +125,61 @@ jobs:
           JIRA_USER: ${{ secrets.JIRA_USER }}
 ```
 
+## Sync issues and pull requests manually
+
+Actions for both issues and pull requests to sync them manually to Jira. When enabling [Sync a new issue to Jira](#sync-a-new-issue-to-jira) and [Sync a new pull request to Jira](#sync-a-new-pull-request-to-jira) actions, it will sync only newly created issues and pull requests. With this action you can manually sync all old issues and pull requests.
+Action defines two input parameters:
+
+- `action` with default value `mirror-issues`
+- `issue-numbers` with issue and pull requests numbers to be mirrored to Jira
+
+```yaml
+name: Manually trigger sync issue to Jira
+
+# This workflow will be triggered manually
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to be performed'
+        required: true
+        default: 'mirror-issues'
+      issue-numbers:
+        description: 'Issue numbers'
+        required: true
+
+concurrency: jira_issues
+
+jobs:
+  sync_issues_to_jira:
+    name: Sync issues to Jira
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: Sync GitHub issues to Jira project
+        uses: espressif/github-actions/sync_issues_to_jira@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          JIRA_PASS: ${{ secrets.JIRA_PASS }}
+          JIRA_PROJECT: SOMEPROJECT
+          JIRA_COMPONENT: SOMECOMPONENT
+          JIRA_URL: ${{ secrets.JIRA_URL }}
+          JIRA_USER: ${{ secrets.JIRA_USER }}
+```
+
 # Variables
 
 The environment variables should be set in the GitHub Workflow:
 
-* `JIRA_PROJECT` is the slug of the JIRA project to create new issues in.
-* `JIRA_ISSUE_TYPE` (optional) the JIRA issue type for new issues. If unset, "Task" is used.
-* `JIRA_COMPONENT` (optional) the name of a JIRA component to add to every issue which is synced from GitHub. The component must already exist in the JIRA project.
+- `JIRA_PROJECT` is the slug of the JIRA project to create new issues in.
+- `JIRA_ISSUE_TYPE` (optional) the JIRA issue type for new issues. If unset, "Task" is used.
+- `JIRA_COMPONENT` (optional) the name of a JIRA component to add to every issue which is synced from GitHub. The component must already exist in the JIRA project.
 
 The following secrets should be set in the workflow:
 
-* `JIRA_URL` is the main JIRA URL (doesn't have to be secret).
-* `JIRA_USER` is the JIRA username to log in with (JIRA basic auth)
-* `JIRA_PASS` is the JIRA password to log in with (JIRA basic auth)
+- `JIRA_URL` is the main JIRA URL (doesn't have to be secret).
+- `JIRA_USER` is the JIRA username to log in with (JIRA basic auth)
+- `JIRA_PASS` is the JIRA password to log in with (JIRA basic auth)
 
 # Tests
 
