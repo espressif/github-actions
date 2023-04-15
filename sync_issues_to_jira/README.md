@@ -65,6 +65,10 @@ name: Sync issues to Jira
 # This workflow will be triggered when a new issue is opened
 on: issues
 
+# Limit to single concurrent run for workflows which can create Jira issues.
+# Same concurrency group is used in issue_comment.yml
+concurrency: jira_issues
+
 jobs:
   sync_issues_to_jira:
     name: Sync issues to Jira
@@ -106,6 +110,10 @@ name: Sync remaining PRs to Jira
 on:
   schedule:
     - cron: "0 * * * *"
+
+# Limit to single concurrent run for workflows which can create Jira issues.
+# Same concurrency group is used in issue_comment.yml
+concurrency: jira_issues
 
 jobs:
   sync_prs_to_jira:

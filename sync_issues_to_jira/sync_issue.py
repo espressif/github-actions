@@ -31,6 +31,13 @@ JIRA_NEW_FEATURE_TYPE_ID = 10101
 
 
 def handle_issue_opened(jira, event):
+    gh_issue = event["issue"]
+    issue = _find_jira_issue(jira, gh_issue, False)
+
+    if issue is not None:
+        print('Issue already exists (another event was dispatched first?)')
+        return
+
     print('Creating new JIRA issue for new GitHub issue')
     _create_jira_issue(jira, event["issue"])
 
