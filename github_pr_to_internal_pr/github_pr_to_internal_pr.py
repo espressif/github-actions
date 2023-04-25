@@ -12,6 +12,7 @@ import gitlab
 import requests
 from git import Git, Repo
 
+MR_NOTIFY_USERS = '@esp-idf-codeowners/all-maintainers'
 
 def pr_check_approver(pr_creator, pr_comments_url, pr_approve_labeller):
     print('Checking PR comment and affixed label...')
@@ -215,6 +216,10 @@ def main():
 
     mr.description = mr_desc
     mr.save()
+
+    print('Notify relevant users')
+    resource = project_gl.mergerequests.get(mr.iid)
+    resource.discussions.create({'body': f'{MR_NOTIFY_USERS}: FYI'})
 
     print('Done with the workflow!')
 
