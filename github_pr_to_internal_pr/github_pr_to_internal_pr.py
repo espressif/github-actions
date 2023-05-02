@@ -205,7 +205,7 @@ def main():
         raise RuntimeError('Illegal program flow!')
 
     print('Creating a merge request...')
-    mr = project_gl.mergerequests.create({'source_branch': pr_head_branch, 'target_branch': pr_base_branch, 'title': pr_title_desc})
+    mr = project_gl.mergerequests.create({'source_branch': pr_head_branch, 'target_branch': pr_base_branch, 'title': pr_title_desc, 'remove_source_branch': True})
 
     print('Updating merge request description...')
     mr_desc = '## Description \n' + pr_body + '\n ##### (Add more info here)' + '\n## Related'
