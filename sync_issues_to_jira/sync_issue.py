@@ -14,15 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from jira import JIRA
 from github import Github
 from github.GithubException import GithubException
-import json
 import os
 import random
 import re
 import subprocess
-import sys
 import tempfile
 import time
 
@@ -170,6 +167,7 @@ def sync_issues_manually(jira, event):
         handle_issue_opened(jira, event)
 
 
+
 def _check_issue_label(label):
     """
     Ignore labels that start with "Status:" and "Resolution:". These labels are
@@ -293,7 +291,7 @@ def _create_jira_issue(jira, gh_issue):
         "project": os.environ['JIRA_PROJECT'],
         "description": _get_description(gh_issue),
         "issuetype": issuetype,
-        "labels": [_get_jira_label(l) for l in gh_issue["labels"]],
+        "labels": [_get_jira_label(label) for label in gh_issue["labels"]],
     }
     _update_components_field(jira, fields, None)
 
@@ -390,7 +388,7 @@ def _get_jira_issue_type(jira, gh_issue):
     NOTE: This is only suitable for setting on new issues. Changing issue type is unsafe.
     See https://jira.atlassian.com/browse/JRACLOUD-68207
     """
-    gh_labels = [l["name"] for l in gh_issue["labels"]]
+    gh_labels = [label["name"] for label in gh_issue["labels"]]
 
     issue_types = jira.issue_types()
 
