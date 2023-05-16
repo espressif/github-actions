@@ -71,6 +71,8 @@ def handle_issue_closed(jira, event):
     # issues often get closed for the wrong reasons - ie the user
     # found a workaround but the root cause still exists.
     issue = _leave_jira_issue_comment(jira, event, "closed", False)
+    # Sets value of custom GitHub Issue field to Closed
+    issue.update(fields={'customfield_12100': {'value': 'Closed'}}) 
     if issue is not None:
         _update_link_resolved(jira, event["issue"], issue)
 
@@ -117,6 +119,8 @@ def handle_issue_deleted(jira, event):
 
 def handle_issue_reopened(jira, event):
     issue = _leave_jira_issue_comment(jira, event, "reopened", True)
+    # Sets value of custom GitHub Issue field to Open
+    issue.update(fields={'customfield_12100': {'value': 'Open'}})
     _update_link_resolved(jira, event["issue"], issue)
 
 
@@ -294,6 +298,8 @@ def _create_jira_issue(jira, gh_issue):
         "description": _get_description(gh_issue),
         "issuetype": issuetype,
         "labels": [_get_jira_label(l) for l in gh_issue["labels"]],
+        # Sets value of custom GitHub Issue field to Open 
+        'customfield_12100': {'value': 'Open'},
     }
     _update_components_field(jira, fields, None)
 
