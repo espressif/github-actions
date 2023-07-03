@@ -7,12 +7,12 @@ import json
 import os
 import shutil
 import time
+import subprocess
 
 import gitlab
 import requests
 from git import Git, Repo
 
-MR_NOTIFY_USERS = '@esp-idf-codeowners/all-maintainers'
 
 def pr_check_approver(pr_creator, pr_comments_url, pr_approve_labeller):
     print('Checking PR comment and affixed label...')
@@ -143,6 +143,29 @@ def sync_pr(pr_num, pr_head_branch, pr_commit_id, project_gl, pr_base_branch, pr
     git.push('--set-upstream', GITLAB_REMOTE, pr_head_branch)
 
 
+def notify_maintainers(pr_head_branch, pr_base_branch, project_gl, mr_iid):
+    git = Git('.')
+
+    commits_ahead = git.execute(['git', 'rev-list', '--left-right', '--count', f'{pr_base_branch}..{pr_head_branch}']).split('\t')[1]
+    modified_files = git.execute(['git', 'diff-tree', '--no-commit-id', '--name-only', '-r', f'HEAD..HEAD~{commits_ahead}']).splitlines()
+
+    codeowners_list = []
+    for file in modified_files:
+        cmd = f'/usr/bin/python3 tools/ci/check_codeowners.py identify {file}'
+        try:
+            output = subprocess.check_output(cmd, shell=True, text=True, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as exc:
+            raise RuntimeError(f'Command failed {exc.returncode} {exc.output}')
+        codeowners_list.extend(output.splitlines())
+
+    codeowners_list = list(set(filter(None, codeowners_list)))
+    owners_to_be_notified = ' '.join(codeowners_list)
+
+    print('Notifying relevant users...')
+    resource = project_gl.mergerequests.get(mr_iid)
+    resource.discussions.create({'body': f'{owners_to_be_notified}: FYI'})
+
+
 def main():
     if 'GITHUB_REPOSITORY' not in os.environ:
         print('Not running in GitHub action context, nothing to do')
@@ -217,9 +240,7 @@ def main():
     mr.description = mr_desc
     mr.save()
 
-    print('Notify relevant users')
-    resource = project_gl.mergerequests.get(mr.iid)
-    resource.discussions.create({'body': f'{MR_NOTIFY_USERS}: FYI'})
+    notify_maintainers(pr_head_branch, pr_base_branch, project_gl, mr.iid)
 
     print('Done with the workflow!')
 
