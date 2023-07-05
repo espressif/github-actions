@@ -5,14 +5,24 @@
 
 import json
 import os
-import shutil
-import time
+import re
+import subprocess
 
 import gitlab
 import requests
 from git import Git, Repo
 
-MR_NOTIFY_USERS = '@esp-idf-codeowners/all-maintainers'
+
+GITHUB_REMOTE = 'origin'
+GITLAB_REMOTE = 'gitlab'
+URL_HDR_LEN = 8
+
+LABEL_MERGE  = 'PR-Sync-Merge'
+LABEL_REBASE = 'PR-Sync-Rebase'
+LABEL_UPDATE = 'PR-Sync-Update'
+
+CODEOWNERS_CHECK_PATH = './tools/ci/check_codeowners.py'
+
 
 def pr_check_approver(pr_creator, pr_comments_url, pr_approve_labeller):
     print('Checking PR comment and affixed label...')
@@ -24,7 +34,7 @@ def pr_check_approver(pr_creator, pr_comments_url, pr_approve_labeller):
 
     for comment in reversed(r_data):
         comment_body = comment['body']
-        if comment_body.startswith('sha=') and comment['user']['login'] == pr_approve_labeller != pr_creator:
+        if bool(re.match('sha=', comment_body, re.I)) and comment['user']['login'] == pr_approve_labeller != pr_creator:
                 return comment_body[4:]
 
     raise RuntimeError('PR Comment Error: Ensure that Command comment exists and PR commenter and labeller match!')
@@ -44,19 +54,16 @@ def pr_check_forbidden_files(pr_files_url):
         raise RuntimeError('PR modifying forbidden files!!!')
 
 
-def setup_project(project_html_url, repo_fullname, pr_base_branch):
+def setup_project(repo_fullname, pr_base_branch):
     print('Connecting to GitLab...')
     GITLAB_URL = os.environ['GITLAB_URL']
     GITLAB_TOKEN = os.environ['GITLAB_TOKEN']
 
     gl = gitlab.Gitlab(url=GITLAB_URL, private_token=GITLAB_TOKEN)
     gl.auth()
-
-    HDR_LEN = 8
-    gl_project_url = GITLAB_URL[:HDR_LEN] + GITLAB_TOKEN + ':' + GITLAB_TOKEN + '@' + GITLAB_URL[HDR_LEN:] + '/' + repo_fullname + '.git'
+    gl_project_url = f'{GITLAB_URL[:URL_HDR_LEN]}{GITLAB_TOKEN}:{GITLAB_TOKEN}@{GITLAB_URL[URL_HDR_LEN:]}/{repo_fullname}.git'
 
     git = Git('.')
-    GITLAB_REMOTE = 'gitlab'
 
     print('Adding and fetching the internal remote...')
     git.remote('add', GITLAB_REMOTE, gl_project_url)
@@ -66,9 +73,6 @@ def setup_project(project_html_url, repo_fullname, pr_base_branch):
 
 
 def check_update_label(pr_labels_list):
-    LABEL_MERGE = 'PR-Sync-Merge'
-    LABEL_REBASE = 'PR-Sync-Rebase'
-
     label_validity = [label['name'] for label in pr_labels_list if label['name'] == LABEL_MERGE or label['name'] == LABEL_REBASE]
 
     if not label_validity:
@@ -82,12 +86,10 @@ def update_mr(pr_num, pr_head_branch, pr_commit_id, project_gl):
     except:
         raise RuntimeError('PR Update: No branch found on internal remote to update!')
 
-    GITHUB_REMOTE = 'origin'
-    GITLAB_REMOTE = 'gitlab'
     git = Git('.')
 
     print('Updating the PR branch...')
-    git.fetch(GITHUB_REMOTE, 'pull/' + str(pr_num) + '/head')
+    git.fetch(GITHUB_REMOTE, f'pull/{str(pr_num)}/head')
     git.checkout('FETCH_HEAD', b=pr_head_branch)
 
     print('Checking whether specified commit ID matches with user branch HEAD...')
@@ -109,8 +111,6 @@ def sync_pr(pr_num, pr_head_branch, pr_commit_id, project_gl, pr_base_branch, pr
     else:
         raise RuntimeError('PR Merge/Rebase: Branch/MR already exists for PR!')
 
-    GITHUB_REMOTE = 'origin'
-    GITLAB_REMOTE = 'gitlab'
     git = Git('.')
 
     print('Fetching the PR branch...')
@@ -134,13 +134,36 @@ def sync_pr(pr_num, pr_head_branch, pr_commit_id, project_gl, pr_base_branch, pr
         git.rebase(pr_base_branch)
 
         commit = repo.head.commit
-        new_cmt_msg = commit.message + '\nMerges ' + pr_html_url
+        new_cmt_msg = f'{commit.message}\nMerges{pr_html_url}'
 
         print('Amending commit message (Adding additional info about commit)...')
         git.execute(['git','commit', '--amend', '-m', new_cmt_msg])
 
     print('Pushing to remote...')
     git.push('--set-upstream', GITLAB_REMOTE, pr_head_branch)
+
+
+def notify_maintainers(pr_head_branch, pr_base_branch, project_gl, mr_iid):
+    git = Git('.')
+
+    commits_ahead = git.execute(['git', 'rev-list', '--left-right', '--count', f'{pr_base_branch}..{pr_head_branch}']).split('\t')[1]
+    modified_files = git.execute(['git', 'diff-tree', '--no-commit-id', '--name-only', '-r', f'HEAD..HEAD~{commits_ahead}']).splitlines()
+
+    codeowners_list = []
+    for file in modified_files:
+        cmd = f'/usr/bin/python3 {CODEOWNERS_CHECK_PATH} identify {file}'
+        try:
+            output = subprocess.check_output(cmd, shell=True, text=True, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as exc:
+            raise RuntimeError(f'Command failed {exc.returncode} {exc.output}')
+        codeowners_list.extend(output.splitlines())
+
+    codeowners_list = list(set(filter(None, codeowners_list)))
+    owners_to_be_notified = ' '.join(codeowners_list)
+
+    print('Notifying relevant users...')
+    resource = project_gl.mergerequests.get(mr_iid)
+    resource.discussions.create({'body': f'{owners_to_be_notified}: FYI'})
 
 
 def main():
@@ -156,10 +179,6 @@ def main():
     with open(os.environ['GITHUB_EVENT_PATH'], 'r') as f:
         event = json.load(f)
 
-    LABEL_MERGE = 'PR-Sync-Merge'
-    LABEL_REBASE = 'PR-Sync-Rebase'
-    LABEL_UPDATE = 'PR-Sync-Update'
-
     pr_label = event['label']['name']
     pr_labels_list = event['pull_request']['labels']
 
@@ -170,7 +189,6 @@ def main():
     pr_commit_id = pr_check_approver(pr_creator, pr_comments_url, pr_approve_labeller)
 
     repo_fullname = event['repository']['full_name']
-    project_html_url = event['repository']['clone_url']
 
     pr_num = event['pull_request']['number']
     pr_head_branch = 'contrib/github_pr_' + str(pr_num)
@@ -190,7 +208,7 @@ def main():
     pr_body = str(event['pull_request']['body'])
 
     # Gitlab setup and cloning internal codebase
-    gl = setup_project(project_html_url, repo_fullname, pr_base_branch)
+    gl = setup_project(repo_fullname, pr_base_branch)
     project_gl = gl.projects.get(repo_fullname)
 
     if pr_label == LABEL_REBASE:
@@ -217,9 +235,7 @@ def main():
     mr.description = mr_desc
     mr.save()
 
-    print('Notify relevant users')
-    resource = project_gl.mergerequests.get(mr.iid)
-    resource.discussions.create({'body': f'{MR_NOTIFY_USERS}: FYI'})
+    notify_maintainers(pr_head_branch, pr_base_branch, project_gl, mr.iid)
 
     print('Done with the workflow!')
 
