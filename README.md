@@ -6,6 +6,7 @@
 - [release_zips](release_zips/) creates a zip file from a tagged version to attach to a release (recursive clone, unlike the automatic GitHub source archives.)
 - [upload_components](upload_components/) **DEPRECATED** Use [espressif/upload-components-ci-action](https://github.com/espressif/upload-components-ci-action) instead. Uploads components from a GitHub repo to [Espressif Component Service](https://components.espressif.com)
 - [github_pr_to_internal_pr](github_pr_to_internal_pr/) performs a sync of approved pull requests to Espressif's internal IDF integration.
+- [danger_pr_review](danger_pr_review/) performs automatic style checking of pull requests using the DangerJS framework.
 
 ## Support and Changes
 
