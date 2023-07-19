@@ -23,7 +23,6 @@ const messageFirstContributor: string = `
 
 📘 Please check [project Contributions Guide](https://github.com/${repoOwner}/${repoName}) of the project for the contribution checklist, information regarding code and documentation style, testing and other topics.
 
-🖊️ Please also make sure you have **read and signed** the [Contributor License Agreement for ${repoOwner}/${repoName} project](https://cla-assistant.io/${repoOwner}/${repoName}).
 
 #### Pull request review and merge process you can expect
 We do welcome contributions in the form of bug reports, feature requests and pull requests via this public GitHub repository.
