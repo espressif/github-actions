@@ -9,6 +9,7 @@ declare const warn: (message: string, results?: DangerResults) => void;
  */
 export default function (): void {
     const prDescription: string = danger.github.pr.body;
+    console.log(`PR description: ${prDescription}`);
     const shortPrDescriptionThreshold: number = 100; // Description is considered too short below this number of characters
 
     if (prDescription.length < shortPrDescriptionThreshold) {
