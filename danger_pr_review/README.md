@@ -22,13 +22,8 @@ name: DangerJS Check
 on:
   pull_request:
     types: [opened, edited, reopened, synchronize]
-    branches:
-      - '*'
-  workflow_dispatch:
 
 permissions:
-  issues: write
-  pull-requests: write
   statuses: write
 
 
@@ -59,30 +54,22 @@ If the Danger module (new check/rule) uses an external NPM module (e.g. `axios`)
 In the GitHub action, `danger` is not installed globally (nor are its dependencies) and the `npx` call is used to start the `danger` checks in CI.
 
 
-### Adding new Danger rule
-For local development you can use following strategy
-
-#### Install dependencies
-```sh
-cd danger_pr_review/dangerjs
-npm install
-```
-(If the IDE still shows compiler/typing errors, reload the IDE window.)
-
-#### Add new code as needed or make updates
-
 #### Test locally
-Danger rules can be tested locally (without running the GitHub action pipeline). 
-To do this, you have to first export the ENV variables used by Danger in the local terminal:
+Danger rules can be tested locally (without running the GitHub action pipeline). For local testing move to `danger_pr_review/dangerjs` and install dependencies:
+```sh
+cd danger_pr_review/dangerjs && npm install
+```
+
+You have to also export the variables used by Danger in your local shell session:
 
 ```sh
+# GITHUB_TOKEN must have access to the repository with a pull request
 export GITHUB_TOKEN='**************************************'
 ```
 
-Then you can call Danger by:
+Now you can call Danger by:
 ```sh
-cd .github/dangerjs
-
-danger pr https://github.com/<owner_name>/<repository_name>/pull/<number_of_pull_request> 
+npx danger pr <pull_request_url>   # copy url form browser
 ```
-The result will appear in the terminal.
+
+The result will appear in your terminal.
