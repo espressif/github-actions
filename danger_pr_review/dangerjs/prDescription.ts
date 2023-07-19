@@ -8,8 +8,14 @@ declare const warn: (message: string, results?: DangerResults) => void;
  * @dangerjs WARN
  */
 export default function (): void {
-    const prDescription: string = danger.github.pr.body;
+    let prDescription: string = danger.github.pr.body;
     const shortPrDescriptionThreshold: number = 100; // Description is considered too short below this number of characters
+
+    // Remove HTML comments from the PR description
+    prDescription = prDescription.replace(/<!--[\s\S]*?-->/g, '');
+
+    // Split the PR description on the '#' character (markdown header) - consider as description only the text before the first header
+    prDescription = prDescription.split('#')[0].trim();
 
     if (prDescription.length < shortPrDescriptionThreshold) {
         return warn(
