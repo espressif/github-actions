@@ -28,16 +28,18 @@ def sync_remain_prs(jira):
     repo = github.get_repo(os.environ['GITHUB_REPOSITORY'])
     prs = repo.get_pulls(state="open", sort="created", direction="desc")
     for pr in prs:
-        if not repo.has_in_collaborators(pr.user.login) and not pr.comments:
+        if not repo.has_in_collaborators(pr.user.login):
             # mock a github issue using current PR
-            gh_issue = {"pull_request": True,
-                        "labels": [{"name": l.name} for l in pr.labels],
-                        "number": pr.number,
-                        "title": pr.title,
-                        "html_url": pr.html_url,
-                        "user": {"login": pr.user.login},
-                        "state": pr.state,
-                        "body": pr.body}
+            gh_issue = {
+                "pull_request": True,
+                "labels": [{"name": l.name} for l in pr.labels],
+                "number": pr.number,
+                "title": pr.title,
+                "html_url": pr.html_url,
+                "user": {"login": pr.user.login},
+                "state": pr.state,
+                "body": pr.body,
+            }
             issue = _find_jira_issue(jira, gh_issue)
             if issue is None:
                 _create_jira_issue(jira, gh_issue)
