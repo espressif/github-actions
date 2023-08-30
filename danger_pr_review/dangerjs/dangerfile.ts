@@ -19,7 +19,7 @@ async function runDangerRules(): Promise<void> {
     // Run danger checks
     prCommitsTooManyCommits();
     prDescription();
-    prTargetBranch();
+    await prTargetBranch();
     prCommitMessage();
 
     // Add success log if no issues
