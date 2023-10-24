@@ -39,7 +39,16 @@ def main():
 
     # Connect to Jira server
     print('Connecting to Jira Server...')
-    jira = _JIRA(os.environ['JIRA_URL'], basic_auth=(os.environ['JIRA_USER'], os.environ['JIRA_PASS']))
+
+    # Check if the JIRA_PASS is token or password
+    token_or_pass = os.environ['JIRA_PASS']
+    if token_or_pass.startswith('token:'):
+        print("Authenticating with JIRA_TOKEN ...")
+        token = token_or_pass[6:]  # Strip the 'token:' prefix
+        jira = _JIRA(os.environ['JIRA_URL'], token_auth=token)
+    else:
+        print("Authenticating with JIRA_USER and JIRA_PASS ...")
+        jira = _JIRA(os.environ['JIRA_URL'], basic_auth=(os.environ['JIRA_USER'], token_or_pass))
 
     # Check if it's a cron job
     if os.environ.get('INPUT_CRON_JOB'):

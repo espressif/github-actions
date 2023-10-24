@@ -183,11 +183,15 @@ The environment variables should be set in the GitHub Workflow:
 - `JIRA_ISSUE_TYPE` (optional) the JIRA issue type for new issues. If unset, "Task" is used.
 - `JIRA_COMPONENT` (optional) the name of a JIRA component to add to every issue which is synced from GitHub. The component must already exist in the JIRA project.
 
-The following secrets should be set in the workflow:
+The following secrets are needed for the workflow:
 
 - `JIRA_URL` is the main JIRA URL (doesn't have to be secret).
 - `JIRA_USER` is the JIRA username to log in with (JIRA basic auth)
-- `JIRA_PASS` is the JIRA password to log in with (JIRA basic auth)
+- `JIRA_PASS` is JIRA token (JIRA token auth) or JIRA password (JIRA basic auth) to log in with
+
+If `JIRA_PASS` is a token, it must be entered in the secret with the prefix `token:` (e.g.: `token:Xyz123**************ABC`). The `token:` prefix is used to distinguish between a password and a token type of `JIRA_PASS`. This prefix will be stripped by the script before the API call.
+
+***IMPORTANT:** These secrets are inherited from the GitHub organizational secrets (as they are common to all Espressif GitHub projects) and should not be set at the repository level. (If set at the repository level, repo secrets take precedence over org secrets.)*
 
 # Tests
 
