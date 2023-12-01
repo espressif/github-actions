@@ -45,4 +45,6 @@ function addRetryLink(): void {
     const retryLink: string = `<sub>:repeat: You can re-run automatic PR checks by retrying the <a href="${retryLinkUrl}">DangerJS action</a></sub>`;
 
     markdown(retryLink);
+
+    markdown(`***\n:warning: **Deprecation Notice**: This GitHub action is scheduled for removal in March 2024. We recommend migrating to the latest version available in the [shared-github-danger](https://github.com/espressif/shared-github-dangerjs) project.`)
 }
