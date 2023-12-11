@@ -1,3 +1,7 @@
+:warning: **Deprecation Notice**: This GitHub action is scheduled for removal in March 2024. We recommend migrating to the latest version available in the [shared-github-danger](https://github.com/espressif/shared-github-dangerjs) project.
+
+---
+
 # DangerJS pull request automatic review tool - GitHub
 
 This is the DangerJS pull request linter GitHub action, that can be called from another repositories. It's purpose is to keep the style of each PR in the specified style and automatically check for simple things like correct PR description, meaningful git messages, correct PR target branch, etc.
