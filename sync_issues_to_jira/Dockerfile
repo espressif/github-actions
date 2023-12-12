@@ -18,5 +18,6 @@ ADD sync_issue.py /sync_issue.py
 ADD sync_pr.py /sync_pr.py
 ADD sync_to_jira.py /sync_to_jira.py
 ADD test_sync_to_jira.py /test_sync_to_jira.py
+ADD push_event.py /push_event.py
 
 ENTRYPOINT ["/usr/bin/python3", "/sync_to_jira.py"]
