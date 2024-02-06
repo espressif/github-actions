@@ -134,7 +134,7 @@ def sync_pr(pr_num, pr_head_branch, pr_commit_id, project_gl, pr_base_branch, pr
         git.rebase(pr_base_branch)
 
         commit = repo.head.commit
-        new_cmt_msg = f'{commit.message}\nMerges{pr_html_url}'
+        new_cmt_msg = f'{commit.message}\n\nCloses {pr_html_url}'
 
         print('Amending commit message (Adding additional info about commit)...')
         git.execute(['git','commit', '--amend', '-m', new_cmt_msg])
