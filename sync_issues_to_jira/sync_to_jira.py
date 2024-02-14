@@ -14,6 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import warnings
+warnings.simplefilter('default', DeprecationWarning)
+warnings.warn(
+    "You are using a deprecated version of the Jira sync GitHub action. "
+    "We recommend migrating to the latest version available at https://github.com/espressif/sync-jira-actions.",
+    DeprecationWarning
+)
+
 from jira import JIRA
 from github import Github
 import os
@@ -21,6 +29,7 @@ import sys
 import json
 from sync_pr import sync_remain_prs
 from sync_issue import *
+
 
 
 class _JIRA(JIRA):

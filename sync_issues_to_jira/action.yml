@@ -1,5 +1,5 @@
-name: "GitHub to JIRA Issue Sync"
-description: "Performs simple one way syncing of GitHub issues into JIRA."
+name: "GitHub to JIRA Issue Sync [Deprecated]"
+description: "DEPRECATED: Performs simple one-way syncing of GitHub issues into JIRA. Please migrate to the new action at https://github.com/espressif/sync-jira-actions."
 branding:
   icon: "fast-forward"
   color: "green"
