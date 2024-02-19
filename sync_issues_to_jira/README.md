@@ -1,3 +1,7 @@
+:warning: **Deprecation Notice**: This GitHub action is deprecated and development will not continue here. We recommend migrating to the latest version available in the [espressif/sync-jira-actions](https://github.com/espressif/sync-jira-actions) project.
+
+---
+
 # GitHub to JIRA Issue Sync
 
 This is a GitHub action that performs simple one way syncing of GitHub issues into JIRA.
