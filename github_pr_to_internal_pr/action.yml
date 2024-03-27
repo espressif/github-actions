@@ -1,5 +1,5 @@
 name: "Sync approved PRs to internal codebase"
-description: "Sync approved Github PRs to the Espressif's internal IDF integration"
+description: "DEPRECATED: Sync approved Github PRs to the Espressif's internal IDF integration"
 branding:
   icon: "fast-forward"
   color: "green"
