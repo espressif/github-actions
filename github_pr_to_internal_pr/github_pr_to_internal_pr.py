@@ -3,6 +3,14 @@
 # SPDX-FileCopyrightText: 2021 Espressif Systems (Shanghai) CO LTD
 # SPDX-License-Identifier: Apache-2.0
 
+import warnings
+warnings.simplefilter('default', DeprecationWarning)
+warnings.warn(
+    "You are using a deprecated version of sync GitHub action. "
+    "We recommend migrating to the latest version available at https://github.com/espressif/sync-pr-to-gitlab.",
+    DeprecationWarning
+)
+
 import json
 import os
 import re

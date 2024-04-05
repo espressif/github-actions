@@ -1,3 +1,6 @@
+:warning: **Deprecation Notice**: This GitHub action is deprecated and development will not continue here. We recommend migrating to the latest version available in the [espressif/sync-pr-to-gitlab](https://github.com/espressif/sync-pr-to-gitlab) project.
+
+---
 # Sync approved PRs to internal codebase
 
 This script automates the process of creating branches and PRs on the internal codebase of Espressif based on approved PRs on Github.
