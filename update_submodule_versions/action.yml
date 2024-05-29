@@ -1,5 +1,5 @@
 name: "Update submodules"
-description: "Make PRs to update submodules to new release tags"
+description: "DEPRECATED:Make PRs to update submodules to new release tags. Please migrate to the new action at https://github.com/espressif/update-submodule-versions-action"
 inputs:
   repo-token:
     description: "Github API token (for opening PRs)"
