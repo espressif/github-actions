@@ -29,6 +29,7 @@ import sys
 import json
 from sync_pr import sync_remain_prs
 from sync_issue import *
+from push_event import handle_push_event
 
 
 
@@ -68,6 +69,11 @@ def main():
     with open(os.environ['GITHUB_EVENT_PATH'], 'r') as f:
         event = json.load(f)
         print(json.dumps(event, indent=4))
+    
+    # Check if it's a push event
+    if os.environ['GITHUB_EVENT_NAME'] == 'push':
+        handle_push_event(event)
+        return
 
     event_name = os.environ['GITHUB_EVENT_NAME']
 
