@@ -1,3 +1,6 @@
+:warning: **Deprecation Notice**: This GitHub action is deprecated and development will not continue here. We recommend migrating to the latest version available in the [espressif/update-submodule-versions-action](https://github.com/espressif/update-submodule-versions-action) project.
+
+---
 # Update repository submodules action
 
 This action helps automate updates to submodules of a repository. It is similar to Dependabot's submodule update functionality, with a few extra features:
